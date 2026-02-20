@@ -1,4 +1,14 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+
+import {
+  getMonitorScreenshot,
+  getScreenshotableMonitors,
+} from "tauri-plugin-screenshots-api";
+import {
+  checkScreenRecordingPermission,
+  requestScreenRecordingPermission,
+} from "tauri-plugin-macos-permissions-api";
 
 export type NoteType =
   | "test"
@@ -60,6 +70,8 @@ export default function InstrumentPanel({
   const [noteType, setNoteType] = useState<NoteType>("test");
   const [text, setText] = useState("");
 
+  const [isCapturing, setIsCapturing] = useState(false);
+
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const idx = NOTE_TYPE_ORDER.indexOf(noteType);
@@ -118,6 +130,71 @@ export default function InstrumentPanel({
     setNoteType(NOTE_TYPE_ORDER[n]);
   };
 
+  const captureScreenshot = async () => {
+    if (isCapturing) return;
+
+    try {
+      setIsCapturing(true);
+
+      // On macOS this requires Screen Recording permission.
+      // On other OSes these calls may no-op or throw, so we guard with try/catch.
+      try {
+        const authorized = await checkScreenRecordingPermission();
+        if (!authorized) {
+          await requestScreenRecordingPermission();
+        }
+      } catch {
+        // Ignore permission helper errors on non-macOS.
+      }
+
+      // Re-check (macOS) and fail fast with a helpful message.
+      try {
+        const authorized = await checkScreenRecordingPermission();
+        if (!authorized) {
+          window.alert(
+            "Rapid Reporter needs Screen Recording permission to capture screenshots.\n\nGo to System Settings → Privacy & Security → Screen Recording, enable Rapid Reporter, then restart the app."
+          );
+          return;
+        }
+      } catch {
+        // Non-macOS: carry on.
+      }
+
+      const monitors = await getScreenshotableMonitors();
+      const first = (monitors as any[])?.[0];
+      if (!first || typeof first.id !== "number") {
+        window.alert("No monitors available for screenshot capture.");
+        return;
+      }
+
+      const path = await getMonitorScreenshot(first.id);
+
+      let finalPath = path;
+      try {
+        finalPath = await invoke<string>("unique_screenshot_copy", { path });
+      } catch (e) {
+        console.warn(
+          "Could not create unique screenshot copy; using original path",
+          e
+        );
+        finalPath = path;
+      }
+
+      onCommit({
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        type: noteType,
+        text: `Screenshot: ${finalPath}`,
+      });
+    } catch (err) {
+      console.error("Screenshot capture failed:", err);
+      window.alert("Screenshot capture failed. Check permissions and try again.");
+    } finally {
+      setIsCapturing(false);
+      requestAnimationFrame(() => textareaRef.current?.focus());
+    }
+  };
+
   const commit = () => {
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -172,6 +249,19 @@ export default function InstrumentPanel({
 
         {/* Main entry row */}
         <div className="relative z-10 flex items-center gap-2 px-3 py-6 pr-20">
+          <button
+            type="button"
+            onClick={captureScreenshot}
+            disabled={isCapturing}
+            className={[
+              "shrink-0 rounded border border-black/20 bg-white/40 px-2 py-1 text-black/70 hover:bg-white/60",
+              isCapturing ? "opacity-50 cursor-not-allowed" : "",
+            ].join(" ")}
+            title={isCapturing ? "Capturing…" : "Capture screenshot"}
+            aria-label="Capture screenshot"
+          >
+            {isCapturing ? "…" : "📷"}
+          </button>
           {/* Prefix label (not part of typed text) */}
           <div className="select-none text-xl font-extrabold text-black leading-[1.1]">
             {NOTE_TYPE_LABEL[noteType]}
