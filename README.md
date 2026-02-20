@@ -1,11 +1,3 @@
-# Tauri + React + Typescript
-
-This template should help get you started developing with Tauri, React and Typescript in Vite.
-
-## Recommended IDE Setup
-
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
-
 # Rapid Reporter
 
 Rapid Reporter is a lightweight desktop tool for capturing notes and screenshots during session‑based exploratory testing (SBTM). It is designed to be fast, unobtrusive, and keyboard‑centric so testers can focus on exploration rather than documentation.
