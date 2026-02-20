@@ -1,4 +1,8 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+use chrono::{Local, TimeZone};
+use serde::Deserialize;
+use std::fs;
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -24,10 +28,7 @@ fn unique_screenshot_copy(path: String) -> Result<String, String> {
         .and_then(|s| s.to_str())
         .unwrap_or("screenshot");
 
-    let ext = src
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("png");
+    let ext = src.extension().and_then(|e| e.to_str()).unwrap_or("png");
 
     let millis = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -48,13 +49,103 @@ fn unique_screenshot_copy(path: String) -> Result<String, String> {
     Ok(dst.to_string_lossy().to_string())
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Note {
+    timestamp: i64,
+    text: String,
+
+    #[serde(rename = "type")]
+    note_type: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Session {
+    charter: String,
+    duration_minutes: Option<i64>,
+    started_at: i64,
+    notes: Vec<Note>,
+}
+
+#[tauri::command]
+fn export_session_markdown(
+    session: Session,
+) -> Result<std::collections::HashMap<String, String>, String> {
+    use std::collections::HashMap;
+
+    // Determine export directory in user's home folder
+    let home = dirs::home_dir().ok_or("Could not determine home directory")?;
+
+    let started = Local
+        .timestamp_millis_opt(session.started_at)
+        .single()
+        .ok_or("Invalid session startedAt timestamp")?;
+
+    let stamp = started.format("%Y-%m-%d-%H%M").to_string();
+
+    let export_dir = home.join(format!("RapidReporter-{}", stamp));
+    fs::create_dir_all(&export_dir).map_err(|e| e.to_string())?;
+
+    let md_path = export_dir.join(format!("RapidReporter-{}.md", stamp));
+
+    // Build Markdown content
+    let mut md = String::new();
+
+    md.push_str("# Rapid Reporter Session\n\n");
+    md.push_str(&format!("Charter: {}\n\n", session.charter));
+
+    let started_line = started.format("%H:%M %Z").to_string();
+    md.push_str(&format!("Started: {}\n\n", started_line));
+
+    if let Some(mins) = session.duration_minutes {
+        md.push_str(&format!("Duration: {} minutes\n\n", mins));
+    }
+
+    md.push_str("## Notes\n\n");
+
+    // Notes are stored newest-first on the frontend; export oldest-first.
+    for note in session.notes.iter().rev() {
+        let icon = match note.note_type.as_str() {
+            "Bug" => "🐞 ",
+            "Warning" => "⚠️ ",
+            "Observation" => "👀 ",
+            "Question" => "❓ ",
+            "Idea" => "💡 ",
+            _ => "",
+        };
+
+        let note_time = Local
+            .timestamp_millis_opt(note.timestamp)
+            .single()
+            .map(|dt| dt.format("%H:%M").to_string())
+            .unwrap_or_else(|| "??:??".to_string());
+
+        md.push_str(&format!("{}{} {}\n\n", note_time, icon, note.text));
+    }
+
+    fs::write(&md_path, md).map_err(|e| e.to_string())?;
+
+    let mut result = HashMap::new();
+    result.insert(
+        "markdownPath".to_string(),
+        md_path.to_string_lossy().to_string(),
+    );
+
+    Ok(result)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_macos_permissions::init())
         .plugin(tauri_plugin_screenshots::init())
-        .invoke_handler(tauri::generate_handler![greet, unique_screenshot_copy])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            unique_screenshot_copy,
+            export_session_markdown
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

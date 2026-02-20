@@ -1,22 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LogicalSize } from "@tauri-apps/api/dpi";
+import { invoke } from "@tauri-apps/api/core";
 
 import InstrumentPanel, {
   DurationMinutes,
   Note,
 } from "./components/InstrumentPanel";
 
-type SessionConfig = {
+type Session = {
   charter: string;
   durationMinutes: DurationMinutes;
   startedAt: number; // epoch ms
+  notes: Note[];
 };
 
 function App() {
   // Session state
-  const [session, setSession] = useState<SessionConfig | null>(null);
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [session, setSession] = useState<Session | null>(null);
   const [recapOpen, setRecapOpen] = useState(false);
 
   useEffect(() => {
@@ -35,12 +36,41 @@ function App() {
   }, [session, recapOpen]);
 
   const handleCommit = (note: Note) => {
+    setSession((prev) => {
+      if (!prev) return prev;
+      const next = {
+        ...prev,
+        notes: [note, ...prev.notes].slice(0, 200),
+      };
+
+      // For now, just log. Next step: export/persist via Rust.
+      console.log("Note committed:", { ...note, session: { ...next, notes: undefined } });
+
+      return next;
+    });
+  };
+
+  const handleEndSession = async () => {
     if (!session) return;
 
-    setNotes((prev) => [note, ...prev].slice(0, 200));
+    try {
+      // Export (Rust command will be implemented next)
+      const result = await invoke<{ markdownPath: string }>(
+        "export_session_markdown",
+        { session }
+      );
+      console.log("Export complete:", result);
+    } catch (err) {
+      console.error("Export failed:", err);
+      window.alert(
+        "Export failed. Please check the console for details. (The export command may not be implemented yet.)"
+      );
+      return;
+    }
 
-    // For now, just log. Next step: persist to CSV via Rust.
-    console.log("Note committed:", { ...note, session });
+    // Reset UI back to start
+    setRecapOpen(false);
+    setSession(null);
   };
 
   return (
@@ -48,9 +78,8 @@ function App() {
       {!session ? (
         <StartSessionModal
           onStart={(cfg) => {
-            setNotes([]);
             setRecapOpen(false);
-            setSession(cfg);
+            setSession({ ...cfg, notes: [] });
           }}
         />
       ) : (
@@ -67,9 +96,10 @@ function App() {
             durationMinutes={session.durationMinutes}
             startedAt={session.startedAt}
             onCommit={handleCommit}
-            notes={notes}
+            notes={session.notes}
             recapOpen={recapOpen}
             onToggleRecap={() => setRecapOpen((v) => !v)}
+            onEndSession={handleEndSession}
           />
         </div>
       )}
@@ -86,7 +116,7 @@ export default App;
 function StartSessionModal({
   onStart,
 }: {
-  onStart: (cfg: SessionConfig) => void;
+  onStart: (cfg: Omit<Session, "notes">) => void;
 }) {
   const [charter, setCharter] = useState("");
   const [durationMinutes, setDurationMinutes] = useState<DurationMinutes>(60);

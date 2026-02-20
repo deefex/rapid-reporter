@@ -35,6 +35,7 @@ export type InstrumentPanelProps = {
   notes: Note[];
   recapOpen: boolean;
   onToggleRecap: () => void;
+  onEndSession: () => void;
 };
 
 const NOTE_TYPE_ORDER: NoteType[] = [
@@ -66,6 +67,7 @@ export default function InstrumentPanel({
   notes,
   recapOpen,
   onToggleRecap,
+  onEndSession,
 }: InstrumentPanelProps) {
   const [noteType, setNoteType] = useState<NoteType>("test");
   const [text, setText] = useState("");
@@ -324,14 +326,25 @@ export default function InstrumentPanel({
           • Type: {NOTE_TYPE_LABEL[noteType]}
         </div>
 
-        <button
-          type="button"
-          onClick={onToggleRecap}
-          className="rounded border border-black/20 bg-white/40 px-2 py-1 text-black/70 hover:bg-white/60"
-          aria-expanded={recapOpen}
-        >
-          {recapOpen ? "Hide recap" : "Show recap"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onToggleRecap}
+            className="rounded border border-black/20 bg-white/40 px-2 py-1 text-black/70 hover:bg-white/60"
+            aria-expanded={recapOpen}
+          >
+            {recapOpen ? "Hide recap" : "Show recap"}
+          </button>
+
+          <button
+            type="button"
+            onClick={onEndSession}
+            className="rounded border border-black/20 bg-white/40 px-2 py-1 font-semibold text-black/80 hover:bg-white/60"
+            title="End session and export report"
+          >
+            End session
+          </button>
+        </div>
       </div>
 
       {recapOpen && (
