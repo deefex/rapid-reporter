@@ -40,7 +40,7 @@ function App() {
       {!session ? (
         <StartSessionModal onStart={(cfg) => setSession(cfg)} />
       ) : (
-        <>
+        <div className="w-full">
           <div
             className="mb-1 select-none text-[11px] text-black/70 truncate"
             title={session.charter}
@@ -54,7 +54,7 @@ function App() {
             startedAt={session.startedAt}
             onCommit={handleCommit}
           />
-        </>
+        </div>
       )}
     </div>
   );

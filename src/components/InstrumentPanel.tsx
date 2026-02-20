@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 export type NoteType =
   | "test"
@@ -41,6 +41,10 @@ const NOTE_TYPE_LABEL: Record<NoteType, string> = {
   question: "Question",
 };
 
+// Progress fill gradient (easy to tweak colour and opacity in one place)
+const PROGRESS_GRADIENT =
+  "linear-gradient(to bottom, rgba(0,122,255,0.35) 0%, rgba(0,122,255,0.22) 40%, rgba(0,122,255,0.10) 100%)";
+
 export default function InstrumentPanel({
   durationMinutes,
   startedAt,
@@ -60,6 +64,27 @@ export default function InstrumentPanel({
     if (durationMinutes === null) return "∞";
     return `${durationMinutes} min`;
   }, [durationMinutes]);
+
+  const [progress, setProgress] = useState(0); // 0..1
+
+  useEffect(() => {
+    if (durationMinutes === null) {
+      setProgress(0);
+      return;
+    }
+
+    const totalMs = durationMinutes * 60 * 1000;
+
+    const tick = () => {
+      const elapsed = Date.now() - startedAt;
+      const p = Math.min(Math.max(elapsed / totalMs, 0), 1);
+      setProgress(p);
+    };
+
+    tick();
+    const id = window.setInterval(tick, 150);
+    return () => window.clearInterval(id);
+  }, [durationMinutes, startedAt]);
 
   // Auto-grow textarea up to a sensible max height, then allow scrolling.
   useLayoutEffect(() => {
@@ -107,23 +132,39 @@ export default function InstrumentPanel({
     <div className="w-full">
       {/* Instrument panel container */}
       <div className="relative rounded-md border border-black/30 bg-[#cdcdcd] shadow-sm">
+        {/* Progress fill (subtle gradient) */}
+        {durationMinutes !== null && (
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 z-0 overflow-hidden rounded-md"
+            style={{ width: `${Math.round(progress * 1000) / 10}%` }}
+            aria-hidden="true"
+          >
+            <div
+              className="h-full"
+              style={{
+                background: PROGRESS_GRADIENT,
+              }}
+            />
+          </div>
+        )}
+
         {/* Top-left hint */}
-        <div className="pointer-events-none absolute left-3 top-2 text-[11px] text-black/60">
+        <div className="pointer-events-none absolute left-3 top-2 z-10 text-[11px] text-black/60">
           <span className="font-semibold">↑</span> {NOTE_TYPE_LABEL[prevType]}
         </div>
 
         {/* Bottom-left hint */}
-        <div className="pointer-events-none absolute left-3 bottom-2 text-[11px] text-black/60">
+        <div className="pointer-events-none absolute left-3 bottom-2 z-10 text-[11px] text-black/60">
           <span className="font-semibold">↓</span> {NOTE_TYPE_LABEL[nextType]}
         </div>
 
         {/* Duration indicator */}
-        <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-black/60">
+        <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 z-10 text-sm font-semibold text-black/60">
           {durationLabel}
         </div>
 
         {/* Main entry row */}
-        <div className="flex items-center gap-2 px-3 py-6 pr-20">
+        <div className="relative z-10 flex items-center gap-2 px-3 py-6 pr-20">
           {/* Prefix label (not part of typed text) */}
           <div className="select-none text-xl font-extrabold text-black leading-[1.1]">
             {NOTE_TYPE_LABEL[noteType]}
@@ -177,7 +218,7 @@ export default function InstrumentPanel({
 
       {/* Tiny debug line for now; remove later */}
       <div className="mt-2 text-xs text-black/50">
-        Started: {new Date(startedAt).toLocaleTimeString()} • Type:{" "}
+        Started: {new Date(startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", timeZoneName: "short" })} • Type:{" "}
         {NOTE_TYPE_LABEL[noteType]}
       </div>
     </div>
