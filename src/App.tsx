@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 
-type NoteType = "test" | "bug" | "warning" | "observation" | "question" | "idea";
-
-type DurationMinutes = 30 | 60 | 90 | 120 | null; // null = no limit
+import InstrumentPanel, {
+  DurationMinutes,
+  Note,
+} from "./components/InstrumentPanel";
 
 type SessionConfig = {
   charter: string;
@@ -13,9 +14,6 @@ type SessionConfig = {
 };
 
 function App() {
-  const [noteType, setNoteType] = useState<NoteType>("test");
-  const [text, setText] = useState("");
-
   // Session state
   const [session, setSession] = useState<SessionConfig | null>(null);
 
@@ -31,60 +29,22 @@ function App() {
     win.setSize(session ? captureSize : startSessionSize).catch(console.error);
   }, [session]);
 
+  const handleCommit = (note: Note) => {
+    if (!session) return;
+    // For now, just log. Next step: store in state + persist to CSV via Rust.
+    console.log("Note committed:", { ...note, session });
+  };
+
   return (
     <div className="bg-[#f9d900] w-screen h-screen p-4 flex flex-col">
       {!session ? (
-        <StartSessionModal
-          onStart={(cfg) => {
-            setSession(cfg);
-          }}
-        />
+        <StartSessionModal onStart={(cfg) => setSession(cfg)} />
       ) : (
-        <>
-          {/* (Optional) tiny session summary line for now */}
-          <div className="mb-3 text-black/70 text-sm">
-            <span className="font-semibold">Charter:</span> {session.charter}
-            {"  "}
-            <span className="mx-2">•</span>
-            <span className="font-semibold">Duration:</span>{" "}
-            {session.durationMinutes === null ? "No limit" : `${session.durationMinutes} min`}
-          </div>
-
-          {/* Entry Row */}
-          <div className="flex gap-2">
-            {/* Type Selector (temporary; we'll replace with icon + keyboard cycling) */}
-            <select
-              value={noteType}
-              onChange={(e) => setNoteType(e.target.value as NoteType)}
-              className="bg-white/30 px-2 py-1 rounded border border-black/20"
-            >
-              <option value="test">Test (no icon)</option>
-              <option value="bug">🐞 Bug</option>
-              <option value="warning">⚠️ Warning</option>
-              <option value="observation">👁 Observation</option>
-              <option value="question">❓ Question</option>
-              <option value="idea">💡 Idea</option>
-            </select>
-
-            {/* Note Input */}
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Type a note and press Enter..."
-              className="flex-1 px-2 py-1 rounded border border-black/20 bg-white/50"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const trimmed = text.trim();
-                  if (!trimmed) return;
-
-                  console.log("Note:", noteType, trimmed, session);
-                  setText("");
-                }
-              }}
-              autoFocus
-            />
-          </div>
-        </>
+        <InstrumentPanel
+          durationMinutes={session.durationMinutes}
+          startedAt={session.startedAt}
+          onCommit={handleCommit}
+        />
       )}
     </div>
   );
@@ -156,6 +116,7 @@ function StartSessionModal({
               );
             })}
           </div>
+
           <div className="mt-1 text-xs text-black/60">
             Choose ∞ for no time limit.
           </div>
@@ -166,7 +127,6 @@ function StartSessionModal({
             type="button"
             className="px-3 py-2 rounded border border-black/20 bg-white/60 text-black hover:bg-white/80"
             onClick={() => {
-              // “Cancel” could quit the app later; for now just clear
               setCharter("");
               setDurationMinutes(60);
             }}
