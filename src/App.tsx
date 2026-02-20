@@ -40,11 +40,21 @@ function App() {
       {!session ? (
         <StartSessionModal onStart={(cfg) => setSession(cfg)} />
       ) : (
-        <InstrumentPanel
-          durationMinutes={session.durationMinutes}
-          startedAt={session.startedAt}
-          onCommit={handleCommit}
-        />
+        <>
+          <div
+            className="mb-1 select-none text-[11px] text-black/70 truncate"
+            title={session.charter}
+          >
+            <span className="font-semibold">Charter:</span>{" "}
+            {session.charter.replace(/\s+/g, " ").trim()}
+          </div>
+
+          <InstrumentPanel
+            durationMinutes={session.durationMinutes}
+            startedAt={session.startedAt}
+            onCommit={handleCommit}
+          />
+        </>
       )}
     </div>
   );
