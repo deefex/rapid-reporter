@@ -21,6 +21,10 @@ export type InstrumentPanelProps = {
   durationMinutes: DurationMinutes;
   startedAt: number; // epoch ms
   onCommit: (note: Note) => void;
+
+  notes: Note[];
+  recapOpen: boolean;
+  onToggleRecap: () => void;
 };
 
 const NOTE_TYPE_ORDER: NoteType[] = [
@@ -49,6 +53,9 @@ export default function InstrumentPanel({
   durationMinutes,
   startedAt,
   onCommit,
+  notes,
+  recapOpen,
+  onToggleRecap,
 }: InstrumentPanelProps) {
   const [noteType, setNoteType] = useState<NoteType>("test");
   const [text, setText] = useState("");
@@ -216,11 +223,55 @@ export default function InstrumentPanel({
         </div>
       </div>
 
-      {/* Tiny debug line for now; remove later */}
-      <div className="mt-2 text-xs text-black/50">
-        Started: {new Date(startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", timeZoneName: "short" })} • Type:{" "}
-        {NOTE_TYPE_LABEL[noteType]}
+      <div className="mt-2 flex items-center justify-between text-xs text-black/50">
+        <div>
+          Started:{" "}
+          {new Date(startedAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZoneName: "short",
+          })}{" "}
+          • Type: {NOTE_TYPE_LABEL[noteType]}
+        </div>
+
+        <button
+          type="button"
+          onClick={onToggleRecap}
+          className="rounded border border-black/20 bg-white/40 px-2 py-1 text-black/70 hover:bg-white/60"
+          aria-expanded={recapOpen}
+        >
+          {recapOpen ? "Hide recap" : "Show recap"}
+        </button>
       </div>
+
+      {recapOpen && (
+        <div className="mt-2 rounded-md border border-black/20 bg-white/30 p-2">
+          <div className="mb-1 text-[11px] font-semibold text-black/60">Recent notes  · showing last 6</div>
+
+          {notes.length === 0 ? (
+            <div className="text-xs text-black/50">No notes yet.</div>
+          ) : (
+            <div className="pr-1 overflow-hidden">
+              {notes.slice(0, 6).map((n) => (
+                <div key={n.id} className="mb-1 flex gap-2 text-xs text-black/70 min-w-0">
+                  <div className="w-[72px] shrink-0 text-black/50">
+                    {new Date(n.timestamp).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
+
+                  <div className="w-[92px] shrink-0 font-semibold text-black/60">
+                    {NOTE_TYPE_LABEL[n.type]}
+                  </div>
+
+                  <div className="min-w-0 truncate">{n.text}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

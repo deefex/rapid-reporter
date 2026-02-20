@@ -16,6 +16,8 @@ type SessionConfig = {
 function App() {
   // Session state
   const [session, setSession] = useState<SessionConfig | null>(null);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [recapOpen, setRecapOpen] = useState(false);
 
   useEffect(() => {
     const win = getCurrentWindow();
@@ -23,22 +25,34 @@ function App() {
     // Size for the Start Session modal (fits comfortably)
     const startSessionSize = new LogicalSize(520, 420);
 
-    // Size for the main capture UI (your preferred slim bar)
-    const captureSize = new LogicalSize(1200, 200);
+    // Size for the main capture UI (collapsed vs expanded recap)
+    const captureSizeCollapsed = new LogicalSize(1200, 200);
+    const captureSizeExpanded = new LogicalSize(1200, 360);
+
+    const captureSize = recapOpen ? captureSizeExpanded : captureSizeCollapsed;
 
     win.setSize(session ? captureSize : startSessionSize).catch(console.error);
-  }, [session]);
+  }, [session, recapOpen]);
 
   const handleCommit = (note: Note) => {
     if (!session) return;
-    // For now, just log. Next step: store in state + persist to CSV via Rust.
+
+    setNotes((prev) => [note, ...prev].slice(0, 200));
+
+    // For now, just log. Next step: persist to CSV via Rust.
     console.log("Note committed:", { ...note, session });
   };
 
   return (
-    <div className="bg-[#f9d900] w-screen h-screen p-4 flex flex-col">
+    <div className="bg-[#f9d900] w-screen h-screen p-4 flex flex-col overflow-hidden">
       {!session ? (
-        <StartSessionModal onStart={(cfg) => setSession(cfg)} />
+        <StartSessionModal
+          onStart={(cfg) => {
+            setNotes([]);
+            setRecapOpen(false);
+            setSession(cfg);
+          }}
+        />
       ) : (
         <div className="w-full">
           <div
@@ -53,6 +67,9 @@ function App() {
             durationMinutes={session.durationMinutes}
             startedAt={session.startedAt}
             onCommit={handleCommit}
+            notes={notes}
+            recapOpen={recapOpen}
+            onToggleRecap={() => setRecapOpen((v) => !v)}
           />
         </div>
       )}
