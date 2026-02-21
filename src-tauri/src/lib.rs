@@ -23,6 +23,26 @@ fn copy_icon_assets(export_dir: &std::path::Path) -> Result<(), String> {
     Ok(())
 }
 
+fn copy_screenshot_asset(export_dir: &std::path::Path, absolute_path: &str) -> Result<String, String> {
+    let src = std::path::Path::new(absolute_path);
+    if !src.exists() {
+        return Err(format!("Screenshot file does not exist: {}", absolute_path));
+    }
+
+    let filename = src
+        .file_name()
+        .and_then(|s| s.to_str())
+        .ok_or_else(|| "Could not determine screenshot filename".to_string())?;
+
+    let dest_dir = export_dir.join("assets/screenshots");
+    std::fs::create_dir_all(&dest_dir).map_err(|e| e.to_string())?;
+
+    let dest_path = dest_dir.join(filename);
+    std::fs::copy(src, &dest_path).map_err(|e| e.to_string())?;
+
+    Ok(format!("assets/screenshots/{}", filename))
+}
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -128,6 +148,30 @@ fn export_session_markdown(
 
     // Notes are stored newest-first on the frontend; export oldest-first.
     for note in session.notes.iter().rev() {
+        let text = note.text.trim();
+
+        // Screenshot notes are currently logged in the UI as:
+        // "Screenshot: /absolute/path/to/file.png"
+        if let Some(rest) = text.strip_prefix("Screenshot:") {
+            let abs_path = rest.trim();
+
+            match copy_screenshot_asset(&export_dir, abs_path) {
+                Ok(rel_path) => {
+                    md.push_str(&format!(
+                        "<img src=\"{}\" width=\"900\" alt=\"Screenshot\">\n\n",
+                        rel_path
+                    ));
+                }
+                Err(err) => {
+                    // Fall back to a readable line so we don't lose information
+                    md.push_str(&format!("Screenshot (copy failed): {}\n\n", abs_path));
+                    md.push_str(&format!("<!-- {} -->\n\n", err.replace("--", "- -")));
+                }
+            }
+
+            continue;
+        }
+
         let note_type_lc = note.note_type.to_lowercase();
         let icon_filename = match note_type_lc.as_str() {
             "bug" => Some("bug.png"),
@@ -142,10 +186,10 @@ fn export_session_markdown(
             md.push_str(&format!(
                 "<img src=\"assets/icons/{}\" width=\"50\" valign=\"middle\"> {}\n\n",
                 icon_file,
-                note.text
+                text
             ));
         } else {
-            md.push_str(&format!("{}\n\n", note.text));
+            md.push_str(&format!("{}\n\n", text));
         }
     }
 
