@@ -28,7 +28,7 @@ This project is an independent modern re-implementation inspired by the original
 
 ## Artwork and Icons
 
-All category icons used by Rapid Reporter were designed from scratch by my wife, Mary Dewar and are used with permission. The icon artwork is original and forms part of the Rapid Reporter project.
+All category icons used by Rapid Reporter were designed from scratch by Mary, from [MD Creations](https://md-creations.co.uk/) and are used with permission. The icon artwork is original and forms part of the Rapid Reporter project.
 
 ---
 
