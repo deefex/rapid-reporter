@@ -154,13 +154,21 @@ fn export_session_markdown(
     // Notes are stored newest-first on the frontend; export oldest-first.
     for note in session.notes.iter().rev() {
         let text = note.text.trim();
+        let note_type_lc = note.note_type.to_lowercase();
 
-        // Screenshot notes are currently logged in the UI as:
-        // "Screenshot: /absolute/path/to/file.png"
-        if let Some(rest) = text.strip_prefix("Screenshot:") {
-            let abs_path = rest.trim();
+        // Screenshot notes export as embedded images.
+        // New format: note.type == "screenshot" and note.text is the absolute path.
+        // Back-compat: note.text starts with "Screenshot:".
+        let abs_path_opt: Option<String> = if note_type_lc == "screenshot" {
+            Some(text.to_string())
+        } else if let Some(rest) = text.strip_prefix("Screenshot:") {
+            Some(rest.trim().to_string())
+        } else {
+            None
+        };
 
-            match copy_screenshot_asset(&export_dir, abs_path) {
+        if let Some(abs_path) = abs_path_opt {
+            match copy_screenshot_asset(&export_dir, &abs_path) {
                 Ok(rel_path) => {
                     md.push_str(&format!(
                         "<img src=\"{}\" width=\"900\" alt=\"Screenshot\">\n\n",
@@ -176,8 +184,6 @@ fn export_session_markdown(
 
             continue;
         }
-
-        let note_type_lc = note.note_type.to_lowercase();
 
         // Snippet notes export as fenced code blocks with no icon
         if note_type_lc == "snippet" {

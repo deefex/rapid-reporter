@@ -17,7 +17,8 @@ export type NoteType =
   | "observation"
   | "warning"
   | "question"
-  | "snippet";
+  | "snippet"
+  | "screenshot";
 
 export type DurationMinutes = 30 | 60 | 90 | 120 | null; // null = no limit
 
@@ -57,6 +58,7 @@ const NOTE_TYPE_LABEL: Record<NoteType, string> = {
   warning: "Warning",
   question: "Question",
   snippet: "Snippet",
+  screenshot: "Screenshot",
 };
 
 // Progress fill gradient (easy to tweak colour and opacity in one place)
@@ -195,8 +197,8 @@ export default function InstrumentPanel({
       onCommit({
         id: crypto.randomUUID(),
         timestamp: Date.now(),
-        type: noteType,
-        text: `Screenshot: ${finalPath}`,
+        type: "screenshot",
+        text: finalPath,
       });
     } catch (err) {
       console.error("Screenshot capture failed:", err);
@@ -245,12 +247,12 @@ export default function InstrumentPanel({
         )}
 
         {/* Top-left hint */}
-        <div className="pointer-events-none absolute left-3 top-2 z-10 text-[11px] text-black/60">
+        <div className="pointer-events-none absolute left-3 top-1 z-10 text-[11px] text-black/60">
           <span className="font-semibold">↑</span> {NOTE_TYPE_LABEL[prevType]}
         </div>
 
         {/* Bottom-left hint */}
-        <div className="pointer-events-none absolute left-3 bottom-2 z-10 text-[11px] text-black/60">
+        <div className="pointer-events-none absolute left-3 bottom-1 z-10 text-[11px] text-black/60">
           <span className="font-semibold">↓</span> {NOTE_TYPE_LABEL[nextType]}
         </div>
 
@@ -261,19 +263,6 @@ export default function InstrumentPanel({
 
         {/* Main entry row */}
         <div className="relative z-10 flex items-center gap-2 px-3 py-4 pr-20">
-          <button
-            type="button"
-            onClick={captureScreenshot}
-            disabled={isCapturing}
-            className={[
-              "shrink-0 rounded border border-black/20 bg-white/40 px-2 py-1 text-black/70 hover:bg-white/60",
-              isCapturing ? "opacity-50 cursor-not-allowed" : "",
-            ].join(" ")}
-            title={isCapturing ? "Capturing…" : "Capture screenshot"}
-            aria-label="Capture screenshot"
-          >
-            {isCapturing ? "…" : "📷"}
-          </button>
           {/* Prefix label (not part of typed text) */}
           <div className="select-none text-xl font-extrabold text-black leading-[1.1]">
             {NOTE_TYPE_LABEL[noteType]}
@@ -363,6 +352,17 @@ export default function InstrumentPanel({
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={captureScreenshot}
+            disabled={isCapturing}
+            className={[
+              "rounded border border-black/20 bg-white/40 px-2 py-1 text-black/70 hover:bg-white/60",
+              isCapturing ? "opacity-50 cursor-not-allowed" : "",
+            ].join(" ")}
+          >
+            {isCapturing ? "Please wait…" : "📷 Screenshot"}
+          </button>
           <button
             type="button"
             onClick={onToggleRecap}
