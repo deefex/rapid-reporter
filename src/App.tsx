@@ -19,6 +19,8 @@ function App() {
   // Session state
   const [session, setSession] = useState<Session | null>(null);
   const [recapOpen, setRecapOpen] = useState(false);
+  const [endConfirmOpen, setEndConfirmOpen] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   useEffect(() => {
     const win = getCurrentWindow();
@@ -50,11 +52,16 @@ function App() {
     });
   };
 
-  const handleEndSession = async () => {
+  const requestEndSession = () => {
+    if (!session) return;
+    setExportError(null);
+    setEndConfirmOpen(true);
+  };
+
+  const performEndSession = async () => {
     if (!session) return;
 
     try {
-      // Export (Rust command will be implemented next)
       const result = await invoke<{ markdownPath: string }>(
         "export_session_markdown",
         { session }
@@ -62,13 +69,15 @@ function App() {
       console.log("Export complete:", result);
     } catch (err) {
       console.error("Export failed:", err);
-      window.alert(
-        "Export failed. Please check the console for details. (The export command may not be implemented yet.)"
+      setExportError(
+        "Export failed. Please check the console for details. Your session is still active."
       );
+      setEndConfirmOpen(false);
       return;
     }
 
     // Reset UI back to start
+    setEndConfirmOpen(false);
     setRecapOpen(false);
     setSession(null);
   };
@@ -92,6 +101,12 @@ function App() {
             {session.charter.replace(/\s+/g, " ").trim()}
           </div>
 
+          {exportError && (
+            <div className="mb-2 rounded border border-red-600/30 bg-red-50 px-3 py-2 text-sm text-red-900">
+              {exportError}
+            </div>
+          )}
+
           <InstrumentPanel
             durationMinutes={session.durationMinutes}
             startedAt={session.startedAt}
@@ -99,8 +114,42 @@ function App() {
             notes={session.notes}
             recapOpen={recapOpen}
             onToggleRecap={() => setRecapOpen((v) => !v)}
-            onEndSession={handleEndSession}
+            onEndSession={requestEndSession}
           />
+        </div>
+      )}
+
+      {endConfirmOpen && session && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center overflow-hidden">
+          <div
+            className="absolute inset-0 bg-black/30"
+            onClick={() => setEndConfirmOpen(false)}
+          />
+
+          <div className="relative z-50 w-[420px] max-w-[88vw] rounded-lg border border-black/20 bg-white/90 backdrop-blur px-3 py-3 shadow overflow-hidden">
+            <div className="text-black font-semibold text-base mb-1">End session</div>
+            <div className="text-sm text-black/80">
+              End this session and export the report? This will return you to the Start screen.
+            </div>
+
+            <div className="mt-3 flex justify-end gap-2">
+              <button
+                type="button"
+                className="px-3 py-2 rounded border border-black/20 bg-white/60 text-black hover:bg-white/80"
+                onClick={() => setEndConfirmOpen(false)}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="px-3 py-2 rounded border border-black/30 bg-black/80 text-white hover:bg-black/90"
+                onClick={performEndSession}
+              >
+                End & Export
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -180,6 +229,16 @@ function StartSessionModal({
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
+          <button
+            type="button"
+            className="px-3 py-2 rounded border border-black/20 bg-white/60 text-black hover:bg-white/80"
+            onClick={() => {
+              getCurrentWindow().close().catch(console.error);
+            }}
+          >
+            Exit
+          </button>
+
           <button
             type="button"
             className="px-3 py-2 rounded border border-black/20 bg-white/60 text-black hover:bg-white/80"

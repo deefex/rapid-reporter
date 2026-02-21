@@ -3,6 +3,26 @@ use chrono::{Local, TimeZone};
 use serde::Deserialize;
 use std::fs;
 
+fn copy_icon_assets(export_dir: &std::path::Path) -> Result<(), String> {
+    // Embed icons at compile time so export works in dev + packaged builds
+    const BUG: &[u8] = include_bytes!("../assets/icons/bug.png");
+    const IDEA: &[u8] = include_bytes!("../assets/icons/idea.png");
+    const OBSERVATION: &[u8] = include_bytes!("../assets/icons/observation.png");
+    const QUESTION: &[u8] = include_bytes!("../assets/icons/question.png");
+    const WARNING: &[u8] = include_bytes!("../assets/icons/warning.png");
+
+    let dest_dir = export_dir.join("assets/icons");
+    std::fs::create_dir_all(&dest_dir).map_err(|e| e.to_string())?;
+
+    std::fs::write(dest_dir.join("bug.png"), BUG).map_err(|e| e.to_string())?;
+    std::fs::write(dest_dir.join("idea.png"), IDEA).map_err(|e| e.to_string())?;
+    std::fs::write(dest_dir.join("observation.png"), OBSERVATION).map_err(|e| e.to_string())?;
+    std::fs::write(dest_dir.join("question.png"), QUESTION).map_err(|e| e.to_string())?;
+    std::fs::write(dest_dir.join("warning.png"), WARNING).map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -52,7 +72,6 @@ fn unique_screenshot_copy(path: String) -> Result<String, String> {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Note {
-    timestamp: i64,
     text: String,
 
     #[serde(rename = "type")]
@@ -87,6 +106,9 @@ fn export_session_markdown(
     let export_dir = home.join(format!("RapidReporter-{}", stamp));
     fs::create_dir_all(&export_dir).map_err(|e| e.to_string())?;
 
+    // Copy icon assets into export folder so the report is portable
+    copy_icon_assets(&export_dir)?;
+
     let md_path = export_dir.join(format!("RapidReporter-{}.md", stamp));
 
     // Build Markdown content
@@ -106,22 +128,25 @@ fn export_session_markdown(
 
     // Notes are stored newest-first on the frontend; export oldest-first.
     for note in session.notes.iter().rev() {
-        let icon = match note.note_type.as_str() {
-            "Bug" => "🐞 ",
-            "Warning" => "⚠️ ",
-            "Observation" => "👀 ",
-            "Question" => "❓ ",
-            "Idea" => "💡 ",
-            _ => "",
+        let note_type_lc = note.note_type.to_lowercase();
+        let icon_filename = match note_type_lc.as_str() {
+            "bug" => Some("bug.png"),
+            "warning" => Some("warning.png"),
+            "observation" => Some("observation.png"),
+            "question" => Some("question.png"),
+            "idea" => Some("idea.png"),
+            _ => None,
         };
 
-        let note_time = Local
-            .timestamp_millis_opt(note.timestamp)
-            .single()
-            .map(|dt| dt.format("%H:%M").to_string())
-            .unwrap_or_else(|| "??:??".to_string());
-
-        md.push_str(&format!("{}{} {}\n\n", note_time, icon, note.text));
+        if let Some(icon_file) = icon_filename {
+            md.push_str(&format!(
+                "<img src=\"assets/icons/{}\" width=\"50\" valign=\"middle\"> {}\n\n",
+                icon_file,
+                note.text
+            ));
+        } else {
+            md.push_str(&format!("{}\n\n", note.text));
+        }
     }
 
     fs::write(&md_path, md).map_err(|e| e.to_string())?;

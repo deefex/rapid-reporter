@@ -8,6 +8,7 @@
     "opener:default",
     "core:window:allow-set-size",
     "screenshots:default",
-    "macos-permissions:default"
+    "macos-permissions:default",
+    "core:window:allow-close"
   ]
 }

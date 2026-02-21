@@ -279,7 +279,7 @@ export default function InstrumentPanel({
             className="flex-1 resize-none bg-transparent text-xl text-black placeholder:text-black/40 outline-none leading-[1.1] overflow-y-auto p-0 pt-[6px]"
             onKeyDown={(e) => {
               // Don’t clobber OS shortcuts
-              if (e.metaKey || e.ctrlKey || e.altKey) return;
+              if (e.metaKey || e.ctrlKey) return;
 
               // Enter commits (Shift+Enter inserts newline)
               if (e.key === "Enter") {
@@ -289,7 +289,7 @@ export default function InstrumentPanel({
                 return;
               }
 
-              // Up/down cycles types
+              // ArrowUp / ArrowDown cycle categories directly (no modifier required)
               if (e.key === "ArrowUp") {
                 e.preventDefault();
                 cycle(-1);
@@ -302,13 +302,39 @@ export default function InstrumentPanel({
                 return;
               }
 
-              // Optional quick picks (1-6)
-              if (e.key === "1") setNoteType("test");
-              if (e.key === "2") setNoteType("bug");
-              if (e.key === "3") setNoteType("idea");
-              if (e.key === "4") setNoteType("observation");
-              if (e.key === "5") setNoteType("warning");
-              if (e.key === "6") setNoteType("question");
+              // Optional quick picks (Alt+1..6) for power users
+              if (e.altKey) {
+                if (e.key === "1") {
+                  e.preventDefault();
+                  setNoteType("test");
+                  return;
+                }
+                if (e.key === "2") {
+                  e.preventDefault();
+                  setNoteType("bug");
+                  return;
+                }
+                if (e.key === "3") {
+                  e.preventDefault();
+                  setNoteType("idea");
+                  return;
+                }
+                if (e.key === "4") {
+                  e.preventDefault();
+                  setNoteType("observation");
+                  return;
+                }
+                if (e.key === "5") {
+                  e.preventDefault();
+                  setNoteType("warning");
+                  return;
+                }
+                if (e.key === "6") {
+                  e.preventDefault();
+                  setNoteType("question");
+                  return;
+                }
+              }
             }}
             autoFocus
           />
