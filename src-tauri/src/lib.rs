@@ -137,7 +137,12 @@ fn export_session_markdown(
     md.push_str("# Rapid Reporter Session\n\n");
     md.push_str(&format!("Charter: {}\n\n", session.charter));
 
-    let started_line = started.format("%H:%M %Z").to_string();
+    // Append the date to the report as well as the time as this will be useful moving forward
+    let tz_abbrev = started.format("%Z").to_string();
+    let tz_display = if tz_abbrev == "+00:00" { "GMT" } else { &tz_abbrev };
+    let date_display = started.format("%-d %B %Y").to_string();
+    let time_display = started.format("%H:%M").to_string();
+    let started_line = format!("{} {} {}", date_display, time_display, tz_display);
     md.push_str(&format!("Started: {}\n\n", started_line));
 
     if let Some(mins) = session.duration_minutes {
