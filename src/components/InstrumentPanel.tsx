@@ -16,7 +16,8 @@ export type NoteType =
   | "idea"
   | "observation"
   | "warning"
-  | "question";
+  | "question"
+  | "snippet";
 
 export type DurationMinutes = 30 | 60 | 90 | 120 | null; // null = no limit
 
@@ -45,6 +46,7 @@ const NOTE_TYPE_ORDER: NoteType[] = [
   "observation",
   "warning",
   "question",
+  "snippet",
 ];
 
 const NOTE_TYPE_LABEL: Record<NoteType, string> = {
@@ -54,11 +56,14 @@ const NOTE_TYPE_LABEL: Record<NoteType, string> = {
   observation: "Observation",
   warning: "Warning",
   question: "Question",
+  snippet: "Snippet",
 };
 
 // Progress fill gradient (easy to tweak colour and opacity in one place)
 const PROGRESS_GRADIENT =
   "linear-gradient(to bottom, rgba(0,122,255,0.35) 0%, rgba(0,122,255,0.22) 40%, rgba(0,122,255,0.10) 100%)";
+
+const NOTE_INPUT_MAX_PX = 56; // cap input growth to keep the fixed-height window stable; textarea scrolls internally beyond this
 
 export default function InstrumentPanel({
   durationMinutes,
@@ -107,7 +112,7 @@ export default function InstrumentPanel({
     return () => window.clearInterval(id);
   }, [durationMinutes, startedAt]);
 
-  // Auto-grow textarea up to a sensible max height, then allow scrolling.
+  // Auto-grow textarea up to a sensible max height, then allow internal scrolling.
   useLayoutEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -118,12 +123,17 @@ export default function InstrumentPanel({
 
     if (text.length === 0) {
       el.style.height = `${BASELINE_PX}px`;
+      el.style.overflowY = "hidden";
       return;
     }
 
-    el.style.height = "auto";
-    const next = Math.min(el.scrollHeight, 140);
+    // Measure then clamp.
+    el.style.height = "0px";
+    const next = Math.min(el.scrollHeight, NOTE_INPUT_MAX_PX);
     el.style.height = `${Math.max(next, BASELINE_PX)}px`;
+
+    // If content exceeds max, allow scrolling inside the textarea.
+    el.style.overflowY = el.scrollHeight > NOTE_INPUT_MAX_PX ? "auto" : "hidden";
   }, [text]);
 
   const cycle = (delta: number) => {
@@ -250,7 +260,7 @@ export default function InstrumentPanel({
         </div>
 
         {/* Main entry row */}
-        <div className="relative z-10 flex items-center gap-2 px-3 py-6 pr-20">
+        <div className="relative z-10 flex items-center gap-2 px-3 py-4 pr-20">
           <button
             type="button"
             onClick={captureScreenshot}
@@ -276,7 +286,7 @@ export default function InstrumentPanel({
             onChange={(e) => setText(e.target.value)}
             placeholder="Type note… (Enter to commit, Shift+Enter for newline)"
             rows={1}
-            className="flex-1 resize-none bg-transparent text-xl text-black placeholder:text-black/40 outline-none leading-[1.1] overflow-y-auto p-0 pt-[6px]"
+            className="flex-1 resize-none min-h-[34px] bg-transparent text-xl text-black placeholder:text-black/40 outline-none leading-[1.1] overflow-y-auto p-0 pt-[6px]"
             onKeyDown={(e) => {
               // Don’t clobber OS shortcuts
               if (e.metaKey || e.ctrlKey) return;

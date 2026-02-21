@@ -178,6 +178,15 @@ fn export_session_markdown(
         }
 
         let note_type_lc = note.note_type.to_lowercase();
+
+        // Snippet notes export as fenced code blocks with no icon
+        if note_type_lc == "snippet" {
+            md.push_str("```\n");
+            md.push_str(text);
+            md.push_str("\n```\n\n");
+            continue;
+        }
+
         let icon_filename = match note_type_lc.as_str() {
             "bug" => Some("bug.png"),
             "warning" => Some("warning.png"),
