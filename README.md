@@ -1,23 +1,43 @@
 # Rapid Reporter
 
-Rapid Reporter is a lightweight desktop tool for capturing notes and screenshots during session‑based exploratory testing (SBTM). It is designed to be fast, unobtrusive, and keyboard‑centric so testers can focus on exploration rather than documentation.
+Rapid Reporter is a lightweight desktop tool for capturing categorised notes, screenshots and code/data snippets during session-based exploratory testing (SBTM).
 
-Built with:
+## Origin and Lineage
+
+Rapid Reporter was originally conceived and implemented by Shmuel Gershon. The original Windows executable is still available [here](https://testing.gershon.info/reporter/).
+
+Mac users like myself were unable to use the original tool, so I created an early Mac-specific port without access to the original source code. That attempt can still be found [here](https://github.com/deefex/Rapid_Reporter_BETA). However, due to the rapid evolution of Xcode and Swift at the time, maintaining it became impractical.
+
+## This Modern Re-Implementation
+
+This project is a complete rewrite using modern, cross-platform technologies so Rapid Reporter can run on Windows, macOS, and at stretch, Linux.
+
+It is built with:
 - Tauri v2
 - React + TypeScript
 - Tailwind CSS
 - Rust backend
 
+The goal has been to preserve the original ethos — minimalistic, fast, and unobtrusive — while modernising the implementation and addressing usability limitations discovered through my years of real-world use.
+
+## Credits and Inspiration
+
+Rapid Reporter was originally conceived and implemented by Shmuel Gershon, whose work introduced a generation of testers to fast, session-centric note taking aligned with Session-Based Test Management (SBTM) principles.
+
+This project is an independent modern re-implementation inspired by the original tool. All source code in this repository has been written from scratch.
+
 ---
 
-## Current Features (MVP)
+## Current Features
 
 ### Session management
 - Start a session with:
-  - Charter
+  - Charter (multi‑line supported)
   - Duration (30, 60, 90, 120 minutes, or unlimited)
-- Visual session progress indicator
 - Always‑on‑top instrument panel
+- Visual session progress indicator
+- Confirmation prompt before ending session
+- Clean exit option from start screen
 
 ### Fast note capture
 - Keyboard‑first note entry
@@ -27,20 +47,45 @@ Built with:
   - Warning
   - Observation
   - Question
-  - (Test) Idea
+  - Idea
+  - Snippet (for structured/code content)
 - Prefix indicator for note type
-- Instant commit
-
-### Recap panel
-- Shows the last 6 notes
-- Prevents context loss during sessions (coffee/toilet break)
-- Stable layout (no scrolling or UI shift)
+- Instant commit with Enter
+- Multi‑line entry supported
+- Snippet notes exported as fenced Markdown code blocks
 
 ### Screenshot capture
 - One‑click screenshot capture
-- Automatically saved to $HOME directory
-- Unique timestamped folders and filenames (no overwriting) e.g RapidReporter-2026-02-20-1823
-- Screenshots attached as notes
+- Screenshots recorded as first‑class note type
+- Stored with unique timestamped filenames
+- Automatically copied into export folder
+- Exported as embedded images in Markdown report
+
+### Recap panel
+- Shows the last 6 notes
+- Prevents context loss during sessions
+- Stable layout (no scrolling or UI shift)
+- Supports screenshots and snippet preview
+
+### Markdown export
+- Export session to structured Markdown report
+- Export includes:
+  - Charter
+  - Start date and time
+  - Duration
+  - Notes in chronological order
+  - Icons for Bug, Warning, Observation, Question, Idea
+  - Embedded screenshots
+  - Snippet code blocks
+- Fully portable export folder structure:
+
+```text
+RapidReporter-YYYY-MM-DD-HHMM/
+  RapidReporter-YYYY-MM-DD-HHMM.md
+  assets/
+    icons/
+    screenshots/
+```
 
 ---
 
@@ -57,7 +102,9 @@ Backend:
 - File management via Rust commands
 
 Storage:
-- Local filesystem (AppData directory)
+- Session data held in memory during session
+- Exported reports written to user's home directory
+- Assets (icons, screenshots) embedded into export folder
 
 ---
 
@@ -95,7 +142,6 @@ npm run tauri build
 src/
   components/
     InstrumentPanel.tsx
-    StartSessionModal.tsx
 
 src-tauri/
   src/
@@ -108,31 +154,25 @@ README.md
 
 ## Backlog / TODO
 
-### Screenshot capture improvements (future)
+### Export improvements
 
-- [ ] Option 1: Cross‑platform in‑app region selector
-  - Build a Rapid Reporter overlay allowing drag‑selection of capture region
-  - Single implementation across macOS, Windows, Linux
+- [ ] Export session to PDF (from markdown)?
 
-- [ ] Option 2: Native OS interactive region capture
-  - macOS: screencapture -i
-  - Windows: Snipping Tool
-  - Linux: grim/slurp or desktop native tools
-  - Use fallback when unavailable
+### Screenshot capture improvements
 
-### Multi‑monitor improvements
+- [ ] Cross‑platform region selection overlay
+- [ ] Optional native OS region capture integration
 
-- [ ] Capture monitor containing Rapid Reporter window
-
-### Export features
-
-- [ ] Export session to Markdown
-- [ ] Export session from Markdown to PDF
-
-### UI improvements
+### Usability improvements
 
 - [ ] Click screenshot in recap to open file
 - [ ] Keyboard shortcut for screenshot capture
+- [ ] Autosave session recovery
+
+### Future enhancements
+
+- [ ] Session import / resume
+- [ ] Rich HTML export
 
 ---
 
@@ -149,4 +189,5 @@ Rapid Reporter aims to:
 
 ## License
 
-TBD
+MIT License © 2026 Del Dewar
+See LICENSE file for details.
