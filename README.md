@@ -26,6 +26,10 @@ Rapid Reporter was originally conceived and implemented by Shmuel Gershon, whose
 
 This project is an independent modern re-implementation inspired by the original tool. All source code in this repository has been written from scratch.
 
+## Artwork and Icons
+
+All category icons used by Rapid Reporter were designed from scratch by my wife, Mary Dewar and are used with permission. The icon artwork is original and forms part of the Rapid Reporter project.
+
 ---
 
 ## Current Features
