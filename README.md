@@ -27,19 +27,19 @@ Built with:
   - Warning
   - Observation
   - Question
-  - Idea
+  - (Test) Idea
 - Prefix indicator for note type
 - Instant commit
 
 ### Recap panel
 - Shows the last 6 notes
-- Prevents context loss during sessions
+- Prevents context loss during sessions (coffee/toilet break)
 - Stable layout (no scrolling or UI shift)
 
 ### Screenshot capture
 - One‑click screenshot capture
-- Automatically saved to app data directory
-- Unique filenames (no overwriting)
+- Automatically saved to $HOME directory
+- Unique timestamped folders and filenames (no overwriting) e.g RapidReporter-2026-02-20-1823
 - Screenshots attached as notes
 
 ---
@@ -110,11 +110,11 @@ README.md
 
 ### Screenshot capture improvements (future)
 
-- [ ] Option 2: Cross‑platform in‑app region selector
+- [ ] Option 1: Cross‑platform in‑app region selector
   - Build a Rapid Reporter overlay allowing drag‑selection of capture region
   - Single implementation across macOS, Windows, Linux
 
-- [ ] Option 3: Native OS interactive region capture
+- [ ] Option 2: Native OS interactive region capture
   - macOS: screencapture -i
   - Windows: Snipping Tool
   - Linux: grim/slurp or desktop native tools
@@ -127,12 +127,11 @@ README.md
 ### Export features
 
 - [ ] Export session to Markdown
-- [ ] Export session to CSV
+- [ ] Export session from Markdown to PDF
 
 ### UI improvements
 
 - [ ] Click screenshot in recap to open file
-- [ ] Show icons in recap
 - [ ] Keyboard shortcut for screenshot capture
 
 ---
