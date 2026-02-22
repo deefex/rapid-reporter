@@ -1,6 +1,6 @@
 # Rapid Reporter
 
-[![CI](https://github.com/deefex/RapidReporter/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/deefex/RapidReporter/actions/workflows/ci.yml)
+[![CI](https://github.com/deefex/rapid-reporter/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/deefex/rapid-reporter/actions/workflows/ci.yml)
 
 Rapid Reporter is a lightweight desktop tool for capturing categorised notes, screenshots and code/data snippets during session-based exploratory testing (SBTM).
 
