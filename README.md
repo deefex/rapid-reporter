@@ -17,6 +17,7 @@ It is built with:
 - React + TypeScript
 - Tailwind CSS
 - Rust backend
+- Vitest + Testing Library (frontend component & integration tests)
 
 The goal has been to preserve the original ethos — minimalistic, fast, and unobtrusive — while modernising the implementation and addressing usability limitations discovered through my years of real-world use.
 
@@ -148,6 +149,28 @@ cargo test
 
 All tests must pass before merging changes that affect backend export behaviour.
 
+### Run frontend tests
+
+Rapid Reporter includes React component tests and App-level integration tests using Vitest and Testing Library.
+
+Run in watch mode:
+
+```bash
+npm test
+```
+
+Run once (for CI or pre-merge validation):
+
+```bash
+npm run test:run
+```
+
+Frontend tests cover:
+- StartSessionModal validation logic
+- InstrumentPanel behaviour (note entry, type cycling, recap toggle, end session)
+- App-level flow (start session → capture UI → end session → export)
+- Mocked Tauri command invocation boundaries
+
 ### Build release version
 
 ```bash
@@ -160,13 +183,20 @@ npm run tauri build
 
 ```text
 src/
+  App.tsx
+  App.test.tsx
   components/
     InstrumentPanel.tsx
+    InstrumentPanel.test.tsx
+    StartSessionModal.tsx
+    StartSessionModal.test.tsx
 
 src-tauri/
   src/
     lib.rs
 
+vite.config.ts
+vite.setup.ts
 README.md
 ```
 
@@ -188,6 +218,7 @@ README.md
 
 - [ ] Session import / resume
 - [ ] Rich HTML export
+- [ ] End-to-end (E2E) tests against packaged Tauri build
 
 ---
 

@@ -1,1 +1,13 @@
+/* Prevent a white flash before the app/Tailwind styles are applied */
+html,
+body,
+#root {
+  height: 100%;
+  background: #f9d900;
+}
+
+body {
+  margin: 0;
+}
+
 @import "tailwindcss";

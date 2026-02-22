@@ -1,13 +1,12 @@
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
+import tailwind from "@tailwindcss/vite";
 
-// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  clearScreen: false,
-  server: {
-    port: 1420,
-    strictPort: true,
+  plugins: [react(), tailwind()],
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: ["./vite.setup.ts"],
   },
 });

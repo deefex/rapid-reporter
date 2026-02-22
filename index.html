@@ -5,10 +5,25 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tauri + React + Typescript</title>
+    <style>
+      /* Prevent white flash before React/Tailwind loads */
+      html, body {
+        height: 100%;
+        margin: 0;
+        background: #f9d900;
+      }
+      #root {
+        height: 100%;
+      }
+    </style>
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div style="height:100%;display:flex;align-items:center;justify-content:center;font:14px system-ui;color:rgba(0,0,0,.6)">
+        Loading Rapid Reporter…
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
