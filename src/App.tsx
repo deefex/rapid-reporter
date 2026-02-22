@@ -13,6 +13,7 @@ import {
 import InstrumentPanel, { DurationMinutes, Note } from "./components/InstrumentPanel";
 
 type Session = {
+  testerName: string;
   charter: string;
   durationMinutes: DurationMinutes;
   startedAt: number; // epoch ms
@@ -45,7 +46,7 @@ function App() {
     const win = getCurrentWebviewWindow();
 
     // Size for the Start Session modal (fits comfortably)
-    const startSessionSize = new LogicalSize(520, 420);
+    const startSessionSize = new LogicalSize(600, 520);
 
     // Size for the main capture UI (collapsed vs expanded recap)
     const captureSizeCollapsed = new LogicalSize(1200, 200);
@@ -219,8 +220,7 @@ function App() {
     if (!session) return;
 
     try {
-      const result = await invoke<{ markdownPath: string }>("export_session_markdown", { session });
-      console.log("Export complete:", result);
+      await invoke<{ markdownPath: string }>("export_session_markdown", { session });
     } catch (err) {
       console.error("Export failed:", err);
       setExportError(
@@ -262,6 +262,9 @@ function App() {
       ) : (
         <div className="w-full">
           <div className="mb-1 select-none text-[11px] text-black/70 truncate" title={session.charter}>
+            <span className="font-semibold">Tester:</span>{" "}
+            {session.testerName}
+            {"  ·  "}
             <span className="font-semibold">Charter:</span>{" "}
             {session.charter.replace(/\s+/g, " ").trim()}
           </div>
@@ -331,10 +334,25 @@ function StartSessionModal({
 }: {
   onStart: (cfg: Omit<Session, "notes">) => void;
 }) {
+  const [testerName, setTesterName] = useState("");
+  // Persist tester name between sessions for convenience
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("rapidReporter.testerName");
+      if (saved && saved.trim().length > 0) {
+        setTesterName(saved);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
   const [charter, setCharter] = useState("");
   const [durationMinutes, setDurationMinutes] = useState<DurationMinutes>(60);
 
-  const canStart = useMemo(() => charter.trim().length >= 3, [charter]);
+  const canStart = useMemo(
+    () => testerName.trim().length >= 2 && charter.trim().length >= 3,
+    [testerName, charter]
+  );
 
   const durationOptions: Array<{ label: string; value: DurationMinutes }> = [
     { label: "30", value: 30 },
@@ -353,13 +371,30 @@ function StartSessionModal({
       <div className="relative w-[520px] max-w-[92vw] rounded-lg border border-black/20 bg-white/70 backdrop-blur px-4 py-4 shadow">
         <div className="text-black font-semibold text-lg mb-2">Start Session</div>
 
+        <label className="block text-sm text-black/70 mb-1">Tester Name</label>
+        <input
+          value={testerName}
+          onChange={(e) => {
+            const v = e.target.value;
+            setTesterName(v);
+            try {
+              window.localStorage.setItem("rapidReporter.testerName", v);
+            } catch {
+              // ignore
+            }
+          }}
+          placeholder="Your name"
+          className="w-full mb-3 rounded border border-black/20 bg-white/80 px-3 py-2 outline-none focus:border-black/40 focus:ring-2 focus:ring-black/10"
+          autoFocus={testerName.trim().length === 0}
+        />
+
         <label className="block text-sm text-black/70 mb-1">Charter</label>
         <textarea
           value={charter}
           onChange={(e) => setCharter(e.target.value)}
           placeholder="What are you testing in this session?"
           className="w-full h-20 resize-none rounded border border-black/20 bg-white/80 px-3 py-2 outline-none focus:border-black/40 focus:ring-2 focus:ring-black/10"
-          autoFocus
+          autoFocus={testerName.trim().length > 0}
         />
 
         <div className="mt-3">
@@ -405,8 +440,14 @@ function StartSessionModal({
             type="button"
             className="px-3 py-2 rounded border border-black/20 bg-white/60 text-black hover:bg-white/80"
             onClick={() => {
+              setTesterName("");
               setCharter("");
               setDurationMinutes(60);
+              try {
+                window.localStorage.removeItem("rapidReporter.testerName");
+              } catch {
+                // ignore
+              }
             }}
           >
             Clear
@@ -423,6 +464,7 @@ function StartSessionModal({
             ].join(" ")}
             onClick={() => {
               onStart({
+                testerName: testerName.trim(),
                 charter: charter.trim(),
                 durationMinutes,
                 startedAt: Date.now(),
@@ -433,7 +475,11 @@ function StartSessionModal({
           </button>
         </div>
 
-        {!canStart && <div className="mt-2 text-xs text-black/50">Charter must be at least 3 characters.</div>}
+        {!canStart && (
+          <div className="mt-2 text-xs text-black/50">
+            Tester Name must be at least 2 characters, and Charter at least 3.
+          </div>
+        )}
       </div>
     </div>
   );

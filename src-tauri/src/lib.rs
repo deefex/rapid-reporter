@@ -104,6 +104,8 @@ struct Note {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Session {
+    #[serde(default)]
+    tester_name: Option<String>,
     charter: String,
     duration_minutes: Option<i64>,
     started_at: i64,
@@ -152,7 +154,15 @@ fn export_session_markdown(
     let mut md = String::new();
 
     md.push_str("# Rapid Reporter Session\n\n");
-    md.push_str(&format!("Charter: {}\n\n", session.charter));
+    if let Some(tester_display) = session
+        .tester_name
+        .as_deref()
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+    {
+        md.push_str(&format!("Tester: {}\n\n", tester_display));
+    }
+    md.push_str(&format!("Charter: {}\n\n", session.charter.trim()));
 
     // Append the date to the report as well as the time as this will be useful moving forward
     let tz_abbrev = started.format("%Z").to_string();
