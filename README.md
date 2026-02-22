@@ -1,5 +1,7 @@
 # Rapid Reporter
 
+[![CI](https://github.com/deefex/RapidReporter/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/deefex/RapidReporter/actions/workflows/ci.yml)
+
 Rapid Reporter is a lightweight desktop tool for capturing categorised notes, screenshots and code/data snippets during session-based exploratory testing (SBTM).
 
 ## Origin and Lineage
@@ -18,6 +20,7 @@ It is built with:
 - Tailwind CSS
 - Rust backend
 - Vitest + Testing Library (frontend component & integration tests)
+- GitHub Actions CI (frontend + Rust tests on every push/PR)
 
 The goal has been to preserve the original ethos — minimalistic, fast, and unobtrusive — while modernising the implementation and addressing usability limitations discovered through my years of real-world use.
 
@@ -170,6 +173,19 @@ Frontend tests cover:
 - InstrumentPanel behaviour (note entry, type cycling, recap toggle, end session)
 - App-level flow (start session → capture UI → end session → export)
 - Mocked Tauri command invocation boundaries
+
+### Continuous Integration
+
+Rapid Reporter uses GitHub Actions to automatically run:
+
+- Frontend tests (Vitest)
+- Rust unit tests (cargo test)
+
+on every push and pull request.
+
+Linux system dependencies required for Tauri are installed during CI to ensure backend compilation succeeds on Ubuntu runners.
+
+All checks must pass before merging changes into `main`.
 
 ### Build release version
 
