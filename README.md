@@ -36,6 +36,7 @@ All category icons used by Rapid Reporter were designed from scratch by Mary, fr
 
 ### Session management
 - Start a session with:
+  - Tester Name (persisted between sessions)
   - Charter (multi‑line supported)
   - Duration (30, 60, 90, 120 minutes, or unlimited)
 - Always‑on‑top instrument panel
@@ -60,7 +61,7 @@ All category icons used by Rapid Reporter were designed from scratch by Mary, fr
 
 ### Screenshot capture
 - One‑click full screen screenshot capture
-- Region (area) capture via drag‑selection overlay
+- Region (area) capture via drag‑selection overlay (multi‑monitor aware)
 - Screenshots recorded as first‑class note type
 - Stored with unique timestamped filenames
 - Automatically copied into export folder
@@ -77,6 +78,7 @@ All category icons used by Rapid Reporter were designed from scratch by Mary, fr
 ### Markdown export
 - Export session to structured Markdown report
 - Export includes:
+  - Tester Name
   - Charter
   - Start date and time
   - Duration
@@ -164,10 +166,6 @@ README.md
 ### Export improvements
 
 - [ ] Export session to PDF (from markdown)?
-
-### Screenshot capture improvements
-
-- [ ] Optional native OS region capture integration
 
 ### Usability improvements
 
