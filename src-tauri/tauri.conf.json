@@ -10,12 +10,29 @@
     "frontendDist": "../dist"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
+        "label": "main",
         "title": "Rapid Reporter",
         "width": 520,
         "height": 420,
         "alwaysOnTop": true
+      },
+      {
+        "label": "region_overlay",
+        "create": false,
+        "title": "Region Select",
+        "url": "index.html#/overlay",
+        "transparent": true,
+        "visible": false,
+        "decorations": false,
+        "resizable": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "fullscreen": false,
+        "acceptFirstMouse": true,
+        "focus": true
       }
     ],
     "security": {

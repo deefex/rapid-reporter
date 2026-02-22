@@ -38,6 +38,8 @@ export type InstrumentPanelProps = {
   recapOpen: boolean;
   onToggleRecap: () => void;
   onEndSession: () => void;
+  isRegionCapturing?: boolean;
+  onOpenRegionCapture?: () => Promise<void>;
 };
 
 const NOTE_TYPE_ORDER: NoteType[] = [
@@ -75,6 +77,8 @@ export default function InstrumentPanel({
   recapOpen,
   onToggleRecap,
   onEndSession,
+  isRegionCapturing = false,
+  onOpenRegionCapture,
 }: InstrumentPanelProps) {
   const [noteType, setNoteType] = useState<NoteType>("test");
   const [text, setText] = useState("");
@@ -206,6 +210,22 @@ export default function InstrumentPanel({
     } finally {
       setIsCapturing(false);
       requestAnimationFrame(() => textareaRef.current?.focus());
+    }
+  };
+
+  const openRegionCapture = async () => {
+    // Extra guard (in addition to the button's disabled state)
+    if (isCapturing || isRegionCapturing) return;
+
+    try {
+      if (onOpenRegionCapture) {
+        await onOpenRegionCapture();
+      } else {
+        await invoke("open_region_overlay");
+      }
+    } catch (err) {
+      console.error("Failed to open region overlay:", err);
+      window.alert("Could not open region selection overlay.");
     }
   };
 
@@ -362,6 +382,17 @@ export default function InstrumentPanel({
             ].join(" ")}
           >
             {isCapturing ? "Please wait…" : "📷 Screenshot"}
+          </button>
+          <button
+            type="button"
+            onClick={openRegionCapture}
+            disabled={isCapturing || isRegionCapturing}
+            className={[
+              "rounded border border-black/20 bg-white/40 px-2 py-1 text-black/70 hover:bg-white/60",
+              isCapturing || isRegionCapturing ? "opacity-50 cursor-not-allowed" : "",
+            ].join(" ")}
+          >
+            {isRegionCapturing ? "Please wait…" : "▭ Region"}
           </button>
           <button
             type="button"

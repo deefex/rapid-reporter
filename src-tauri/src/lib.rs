@@ -1,6 +1,6 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 use chrono::{Local, TimeZone};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 
 fn copy_icon_assets(export_dir: &std::path::Path) -> Result<(), String> {
@@ -23,7 +23,10 @@ fn copy_icon_assets(export_dir: &std::path::Path) -> Result<(), String> {
     Ok(())
 }
 
-fn copy_screenshot_asset(export_dir: &std::path::Path, absolute_path: &str) -> Result<String, String> {
+fn copy_screenshot_asset(
+    export_dir: &std::path::Path,
+    absolute_path: &str,
+) -> Result<String, String> {
     let src = std::path::Path::new(absolute_path);
     if !src.exists() {
         return Err(format!("Screenshot file does not exist: {}", absolute_path));
@@ -105,6 +108,20 @@ struct Session {
     duration_minutes: Option<i64>,
     started_at: i64,
     notes: Vec<Note>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+struct RegionSelection {
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+    device_pixel_ratio: f64,
+
+    // Optional for forward-compat (your current TS payload does not send it)
+    #[serde(default)]
+    monitor_id: Option<i32>,
 }
 
 #[tauri::command]
@@ -233,8 +250,139 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             unique_screenshot_copy,
-            export_session_markdown
+            export_session_markdown,
+            open_region_overlay,
+            close_region_overlay,
+            submit_region_selection,
+            crop_screenshot
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[tauri::command]
+fn open_region_overlay(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri::{Manager, PhysicalPosition, PhysicalSize};
+
+    fn size_to_main_monitor(
+        app: &tauri::AppHandle,
+        overlay: &tauri::WebviewWindow,
+    ) -> Result<(), String> {
+        if let Some(main) = app.get_webview_window("main") {
+            if let Ok(Some(monitor)) = main.current_monitor() {
+                let pos = monitor.position();
+                let size = monitor.size();
+
+                overlay
+                    .set_position(PhysicalPosition::new(pos.x, pos.y))
+                    .map_err(|e| e.to_string())?;
+                overlay
+                    .set_size(PhysicalSize::new(size.width, size.height))
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+        Ok(())
+    }
+
+    if let Some(overlay) = app.get_webview_window("region_overlay") {
+        size_to_main_monitor(&app, &overlay)?;
+        overlay.show().map_err(|e| e.to_string())?;
+        overlay.set_focus().map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+
+    let conf = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|w| w.label == "region_overlay")
+        .ok_or_else(|| "Missing window config for label 'region_overlay'.".to_string())?
+        .clone();
+
+    let overlay = tauri::WebviewWindowBuilder::from_config(&app, &conf)
+        .map_err(|e: tauri::Error| e.to_string())?
+        .build()
+        .map_err(|e: tauri::Error| e.to_string())?;
+
+    size_to_main_monitor(&app, &overlay)?;
+    overlay.show().map_err(|e| e.to_string())?;
+    overlay.set_focus().map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+fn close_region_overlay(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri::{Emitter, Manager};
+
+    // Notify the main window that the overlay has been closed/cancelled
+    // so the UI can clear any "Please wait…" state.
+    if let Some(main) = app.get_webview_window("main") {
+        let _ = main.emit("region-overlay-closed", ());
+    } else {
+        let _ = app.emit("region-overlay-closed", ());
+    }
+
+    if let Some(w) = app.get_webview_window("region_overlay") {
+        let _ = w.close();
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+fn submit_region_selection(app: tauri::AppHandle, selection: RegionSelection) -> Result<(), String> {
+    use tauri::{Emitter, Manager};
+
+    if let Some(main) = app.get_webview_window("main") {
+        main.emit("region-selected", selection.clone())
+            .map_err(|e: tauri::Error| e.to_string())?;
+    } else {
+        app.emit("region-selected", selection.clone())
+            .map_err(|e: tauri::Error| e.to_string())?;
+    }
+
+    if let Some(w) = app.get_webview_window("region_overlay") {
+        let _ = w.close();
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+fn crop_screenshot(path: String, selection: RegionSelection) -> Result<String, String> {
+    use image::GenericImageView;
+
+    // We crop the PNG in physical pixels. Selection is in logical pixels, so scale by devicePixelRatio.
+    let dpr = selection.device_pixel_ratio.max(1.0);
+
+    let x = (selection.x as f64 * dpr).round().max(0.0) as u32;
+    let y = (selection.y as f64 * dpr).round().max(0.0) as u32;
+    let w = (selection.width as f64 * dpr).round().max(1.0) as u32;
+    let h = (selection.height as f64 * dpr).round().max(1.0) as u32;
+
+    // Load image
+    let img = image::open(&path).map_err(|e| e.to_string())?;
+    let (img_w, img_h) = img.dimensions();
+
+    // Clamp crop rectangle
+    let x2 = (x + w).min(img_w);
+    let y2 = (y + h).min(img_h);
+    if x >= x2 || y >= y2 {
+        return Err("Crop area is outside the image bounds.".to_string());
+    }
+
+    let cropped = img.crop_imm(x, y, x2 - x, y2 - y);
+
+    // Write alongside the original screenshot
+    let src = std::path::Path::new(&path);
+    let parent = src.parent().ok_or("Could not determine screenshot directory")?;
+    let stem = src.file_stem().and_then(|s| s.to_str()).unwrap_or("screenshot");
+    let millis = Local::now().timestamp_millis();
+
+    let out_path = parent.join(format!("{}-region-{}.png", stem, millis));
+    cropped.save(&out_path).map_err(|e| e.to_string())?;
+
+    Ok(out_path.to_string_lossy().to_string())
 }

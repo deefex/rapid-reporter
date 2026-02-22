@@ -59,11 +59,14 @@ All category icons used by Rapid Reporter were designed from scratch by Mary, fr
 - Snippet notes exported as fenced Markdown code blocks
 
 ### Screenshot capture
-- One‑click screenshot capture
+- One‑click full screen screenshot capture
+- Region (area) capture via drag‑selection overlay
 - Screenshots recorded as first‑class note type
 - Stored with unique timestamped filenames
 - Automatically copied into export folder
 - Exported as embedded images in Markdown report
+- Overlay supports multi‑monitor setups
+- Cancel region capture with Esc
 
 ### Recap panel
 - Shows the last 6 notes
@@ -164,7 +167,6 @@ README.md
 
 ### Screenshot capture improvements
 
-- [ ] Cross‑platform region selection overlay
 - [ ] Optional native OS region capture integration
 
 ### Usability improvements
