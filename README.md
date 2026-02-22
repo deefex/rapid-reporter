@@ -93,6 +93,7 @@ RapidReporter-YYYY-MM-DD-HHMM/
     icons/
     screenshots/
 ```
+- Rust unit tests validate summary generation and pluralisation logic
 
 ---
 
@@ -134,6 +135,18 @@ npm install
 ```bash
 npm run desktop
 ```
+
+### Run Rust unit tests
+
+Rapid Reporter includes Rust unit tests covering core Markdown export logic (e.g. summary generation and pluralisation).
+
+From the `src-tauri` directory, run:
+
+```bash
+cargo test
+```
+
+All tests must pass before merging changes that affect backend export behaviour.
 
 ### Build release version
 

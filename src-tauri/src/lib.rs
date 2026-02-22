@@ -126,6 +126,129 @@ struct RegionSelection {
     monitor_id: Option<i32>,
 }
 
+/// Counts icon-related notes in a session.
+///
+/// Only the following note types are considered:
+/// - "bug"
+/// - "idea"
+/// - "observation"
+/// - "question"
+/// - "warning"
+///
+/// Matching is case-insensitive.
+/// All other note types (e.g. "test", "snippet", "screenshot") are ignored.
+///
+/// Returns a tuple in the order:
+/// (bug, idea, observation, question, warning)
+
+fn summary_counts(notes: &[Note]) -> (usize, usize, usize, usize, usize) {
+    let mut bug_count = 0usize;
+    let mut idea_count = 0usize;
+    let mut observation_count = 0usize;
+    let mut question_count = 0usize;
+    let mut warning_count = 0usize;
+
+    for note in notes {
+        match note.note_type.to_lowercase().as_str() {
+            "bug" => bug_count += 1,
+            "idea" => idea_count += 1,
+            "observation" => observation_count += 1,
+            "question" => question_count += 1,
+            "warning" => warning_count += 1,
+            _ => {}
+        }
+    }
+
+    (bug_count, idea_count, observation_count, question_count, warning_count)
+}
+
+fn plural(count: usize, singular: &str, plural: &str) -> String {
+    if count == 1 {
+        format!("{} {}", count, singular)
+    } else {
+        format!("{} {}", count, plural)
+    }
+}
+
+/// Builds the Markdown `## Summary` section for icon-related notes.
+///
+/// The summary:
+/// - Includes only note types that are present.
+/// - Uses singular/plural labels appropriately (e.g. "1 Bug", "2 Bugs").
+/// - Is omitted entirely if no icon-related notes exist.
+///
+/// The generated HTML references icons using relative paths:
+/// `assets/icons/<icon>.png`.
+
+fn build_summary_section(notes: &[Note]) -> Option<String> {
+    let (bug_count, idea_count, observation_count, question_count, warning_count) =
+        summary_counts(notes);
+
+    let has_summary = bug_count > 0
+        || idea_count > 0
+        || observation_count > 0
+        || question_count > 0
+        || warning_count > 0;
+
+    if !has_summary {
+        return None;
+    }
+
+    let mut md = String::new();
+    md.push_str("## Summary\n\n");
+
+    if bug_count > 0 {
+        md.push_str(&format!(
+            "<img src=\"assets/icons/bug.png\" width=\"50\" valign=\"middle\"> {}\n\n",
+            plural(bug_count, "Bug", "Bugs")
+        ));
+    }
+
+    if idea_count > 0 {
+        md.push_str(&format!(
+            "<img src=\"assets/icons/idea.png\" width=\"50\" valign=\"middle\"> {}\n\n",
+            plural(idea_count, "Idea", "Ideas")
+        ));
+    }
+
+    if observation_count > 0 {
+        md.push_str(&format!(
+            "<img src=\"assets/icons/observation.png\" width=\"50\" valign=\"middle\"> {}\n\n",
+            plural(observation_count, "Observation", "Observations")
+        ));
+    }
+
+    if question_count > 0 {
+        md.push_str(&format!(
+            "<img src=\"assets/icons/question.png\" width=\"50\" valign=\"middle\"> {}\n\n",
+            plural(question_count, "Question", "Questions")
+        ));
+    }
+
+    if warning_count > 0 {
+        md.push_str(&format!(
+            "<img src=\"assets/icons/warning.png\" width=\"50\" valign=\"middle\"> {}\n\n",
+            plural(warning_count, "Warning", "Warnings")
+        ));
+    }
+
+    Some(md)
+}
+
+/// Exports a session to a Markdown file in the user's home directory.
+///
+/// The export directory is named:
+/// `RapidReporter-YYYY-MM-DD-HHMM`
+///
+/// The generated report includes:
+/// - Session metadata (Tester, Charter, Started, Duration)
+/// - An optional Summary section
+/// - All notes (oldest-first)
+/// - Embedded screenshots copied into `assets/screenshots`
+///
+/// Returns a map containing the key:
+/// - "markdownPath": Absolute path to the generated file.
+
 #[tauri::command]
 fn export_session_markdown(
     session: Session,
@@ -184,71 +307,8 @@ fn export_session_markdown(
     // Summary (icon-related notes only)
     // ----------------------------
 
-    let mut bug_count = 0;
-    let mut idea_count = 0;
-    let mut observation_count = 0;
-    let mut question_count = 0;
-    let mut warning_count = 0;
-
-    for note in &session.notes {
-        match note.note_type.to_lowercase().as_str() {
-            "bug" => bug_count += 1,
-            "idea" => idea_count += 1,
-            "observation" => observation_count += 1,
-            "question" => question_count += 1,
-            "warning" => warning_count += 1,
-            _ => {}
-        }
-    }
-
-    let has_summary = bug_count > 0
-        || idea_count > 0
-        || observation_count > 0
-        || question_count > 0
-        || warning_count > 0;
-
-    if has_summary {
-        md.push_str("## Summary\n\n");
-
-        if bug_count > 0 {
-            md.push_str(&format!(
-                "<img src=\"assets/icons/bug.png\" width=\"50\" valign=\"middle\"> {} {}\n\n",
-                bug_count,
-                if bug_count == 1 { "Bug" } else { "Bugs" }
-            ));
-        }
-
-        if idea_count > 0 {
-            md.push_str(&format!(
-                "<img src=\"assets/icons/idea.png\" width=\"50\" valign=\"middle\"> {} {}\n\n",
-                idea_count,
-                if idea_count == 1 { "Idea" } else { "Ideas" }
-            ));
-        }
-
-        if observation_count > 0 {
-            md.push_str(&format!(
-                "<img src=\"assets/icons/observation.png\" width=\"50\" valign=\"middle\"> {} {}\n\n",
-                observation_count,
-                if observation_count == 1 { "Observation" } else { "Observations" }
-            ));
-        }
-
-        if question_count > 0 {
-            md.push_str(&format!(
-                "<img src=\"assets/icons/question.png\" width=\"50\" valign=\"middle\"> {} {}\n\n",
-                question_count,
-                if question_count == 1 { "Question" } else { "Questions" }
-            ));
-        }
-
-        if warning_count > 0 {
-            md.push_str(&format!(
-                "<img src=\"assets/icons/warning.png\" width=\"50\" valign=\"middle\"> {} {}\n\n",
-                warning_count,
-                if warning_count == 1 { "Warning" } else { "Warnings" }
-            ));
-        }
+    if let Some(summary_md) = build_summary_section(&session.notes) {
+        md.push_str(&summary_md);
     }
 
     // ----------------------------
@@ -474,4 +534,103 @@ fn crop_screenshot(path: String, selection: RegionSelection) -> Result<String, S
     cropped.save(&out_path).map_err(|e| e.to_string())?;
 
     Ok(out_path.to_string_lossy().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn note(note_type: &str, text: &str) -> Note {
+        Note {
+            note_type: note_type.to_string(),
+            text: text.to_string(),
+        }
+    }
+
+    #[test]
+    fn summary_counts_only_icon_types() {
+        let notes = vec![
+            note("bug", "b1"),
+            note("bug", "b2"),
+            note("idea", "i1"),
+            note("test", "t1"),
+            note("screenshot", "/tmp/x.png"),
+            note("warning", "w1"),
+        ];
+
+        let (bug, idea, obs, q, warn) = summary_counts(&notes);
+        assert_eq!(bug, 2);
+        assert_eq!(idea, 1);
+        assert_eq!(obs, 0);
+        assert_eq!(q, 0);
+        assert_eq!(warn, 1);
+    }
+
+    #[test]
+    fn build_summary_section_is_none_when_no_icon_notes() {
+        let notes = vec![
+            note("test", "some test note"),
+            note("snippet", "let x = 1;"),
+            note("screenshot", "/tmp/x.png"),
+        ];
+
+        assert!(build_summary_section(&notes).is_none());
+    }
+
+    #[test]
+    fn build_summary_section_includes_only_present_types_and_pluralises() {
+        let notes = vec![
+            note("bug", "b1"),
+            note("bug", "b2"),
+            note("idea", "i1"),
+            note("question", "q1"),
+            note("warning", "w1"),
+            note("warning", "w2"),
+            note("warning", "w3"),
+        ];
+
+        let md = build_summary_section(&notes).expect("summary should exist");
+        assert!(md.contains("## Summary"));
+
+        // present types
+        assert!(md.contains("assets/icons/bug.png"));
+        assert!(md.contains("2 Bugs"));
+
+        assert!(md.contains("assets/icons/idea.png"));
+        assert!(md.contains("1 Idea"));
+
+        assert!(md.contains("assets/icons/question.png"));
+        assert!(md.contains("1 Question"));
+
+        assert!(md.contains("assets/icons/warning.png"));
+        assert!(md.contains("3 Warnings"));
+
+        // absent type (observation)
+        assert!(!md.contains("assets/icons/observation.png"));
+    }
+
+    #[test]
+    fn summary_is_case_insensitive() {
+        let notes = vec![
+            note("Bug", "b1"),
+            note("BUG", "b2"),
+            note("Idea", "i1"),
+            note("WARNING", "w1"),
+        ];
+
+        let (bug, idea, obs, q, warn) = summary_counts(&notes);
+
+        assert_eq!(bug, 2);
+        assert_eq!(idea, 1);
+        assert_eq!(obs, 0);
+        assert_eq!(q, 0);
+        assert_eq!(warn, 1);
+
+        let md = build_summary_section(&notes).expect("summary should exist");
+
+        // Ensure pluralisation still correct
+        assert!(md.contains("2 Bugs"));
+        assert!(md.contains("1 Idea"));
+        assert!(md.contains("1 Warning"));
+    }
 }
