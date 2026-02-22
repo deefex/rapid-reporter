@@ -154,15 +154,17 @@ fn export_session_markdown(
     let mut md = String::new();
 
     md.push_str("# Rapid Reporter Session\n\n");
+
     if let Some(tester_display) = session
         .tester_name
         .as_deref()
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
     {
-        md.push_str(&format!("Tester: {}\n\n", tester_display));
+        md.push_str(&format!("- **Tester**: {}\n", tester_display));
     }
-    md.push_str(&format!("Charter: {}\n\n", session.charter.trim()));
+
+    md.push_str(&format!("- **Charter**: {}\n", session.charter.trim()));
 
     // Append the date to the report as well as the time as this will be useful moving forward
     let tz_abbrev = started.format("%Z").to_string();
@@ -170,11 +172,88 @@ fn export_session_markdown(
     let date_display = started.format("%-d %B %Y").to_string();
     let time_display = started.format("%H:%M").to_string();
     let started_line = format!("{} {} {}", date_display, time_display, tz_display);
-    md.push_str(&format!("Started: {}\n\n", started_line));
+    md.push_str(&format!("- **Started**: {}\n", started_line));
 
     if let Some(mins) = session.duration_minutes {
-        md.push_str(&format!("Duration: {} minutes\n\n", mins));
+        md.push_str(&format!("- **Duration**: {} minutes\n", mins));
     }
+
+    md.push_str("\n");
+
+    // ----------------------------
+    // Summary (icon-related notes only)
+    // ----------------------------
+
+    let mut bug_count = 0;
+    let mut idea_count = 0;
+    let mut observation_count = 0;
+    let mut question_count = 0;
+    let mut warning_count = 0;
+
+    for note in &session.notes {
+        match note.note_type.to_lowercase().as_str() {
+            "bug" => bug_count += 1,
+            "idea" => idea_count += 1,
+            "observation" => observation_count += 1,
+            "question" => question_count += 1,
+            "warning" => warning_count += 1,
+            _ => {}
+        }
+    }
+
+    let has_summary = bug_count > 0
+        || idea_count > 0
+        || observation_count > 0
+        || question_count > 0
+        || warning_count > 0;
+
+    if has_summary {
+        md.push_str("## Summary\n\n");
+
+        if bug_count > 0 {
+            md.push_str(&format!(
+                "<img src=\"assets/icons/bug.png\" width=\"50\" valign=\"middle\"> {} {}\n\n",
+                bug_count,
+                if bug_count == 1 { "Bug" } else { "Bugs" }
+            ));
+        }
+
+        if idea_count > 0 {
+            md.push_str(&format!(
+                "<img src=\"assets/icons/idea.png\" width=\"50\" valign=\"middle\"> {} {}\n\n",
+                idea_count,
+                if idea_count == 1 { "Idea" } else { "Ideas" }
+            ));
+        }
+
+        if observation_count > 0 {
+            md.push_str(&format!(
+                "<img src=\"assets/icons/observation.png\" width=\"50\" valign=\"middle\"> {} {}\n\n",
+                observation_count,
+                if observation_count == 1 { "Observation" } else { "Observations" }
+            ));
+        }
+
+        if question_count > 0 {
+            md.push_str(&format!(
+                "<img src=\"assets/icons/question.png\" width=\"50\" valign=\"middle\"> {} {}\n\n",
+                question_count,
+                if question_count == 1 { "Question" } else { "Questions" }
+            ));
+        }
+
+        if warning_count > 0 {
+            md.push_str(&format!(
+                "<img src=\"assets/icons/warning.png\" width=\"50\" valign=\"middle\"> {} {}\n\n",
+                warning_count,
+                if warning_count == 1 { "Warning" } else { "Warnings" }
+            ));
+        }
+    }
+
+    // ----------------------------
+    // Notes section
+    // ----------------------------
 
     md.push_str("## Notes\n\n");
 

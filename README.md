@@ -78,12 +78,10 @@ All category icons used by Rapid Reporter were designed from scratch by Mary, fr
 ### Markdown export
 - Export session to structured Markdown report
 - Export includes:
-  - Tester Name
-  - Charter
-  - Start date and time
-  - Duration
+  - Metadata header formatted as bold bullet list (Tester, Charter, Started, Duration)
+  - Icon‑based Summary section (Bug, Idea, Observation, Question, Warning — only shown when present)
   - Notes in chronological order
-  - Icons for Bug, Warning, Observation, Question, Idea
+  - Icons for Bug, Warning, Observation, Question, Idea (to draw the reader's attention)
   - Embedded screenshots
   - Snippet code blocks
 - Fully portable export folder structure:
