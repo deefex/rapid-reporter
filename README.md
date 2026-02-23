@@ -40,6 +40,14 @@ It is built with:
 ![Rapid Reporter Main Recap](docs/images/rapid-reporter-main-recap.png)
 
 ---
+## Where exports are saved
+
+When you end a session, Rapid Reporter writes an export folder into your home directory.
+
+- **macOS:** `~/RapidReporter-YYYY-MM-DD-HHMM/`
+- **Windows:** `%USERPROFILE%\\RapidReporter-YYYY-MM-DD-HHMM\\`
+
+Each export folder contains the Markdown report plus an `assets/` folder (icons + screenshots).
 
 ## 📄 Example Export
 
@@ -284,6 +292,7 @@ README.md
 
 ### Usability improvements
 
+- [ ] Toast notification after export (show destination folder + quick “Open folder” action)
 - [ ] Click screenshot in recap to open file
 - [ ] Keyboard shortcut for screenshot capture
 - [ ] Autosave session recovery
