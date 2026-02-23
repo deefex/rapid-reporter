@@ -22,7 +22,61 @@ It is built with:
 - Vitest + Testing Library (frontend component & integration tests)
 - GitHub Actions CI (frontend + Rust tests on every push/PR)
 
-The goal has been to preserve the original ethos — minimalistic, fast, and unobtrusive — while modernising the implementation and addressing usability limitations discovered through my years of real-world use.
+
+---
+
+## Screenshots
+
+### Startup Screen
+
+![Rapid Reporter Startup](docs/images/rapid-reporter-startup.png)
+
+### Main Instrument Panel (Recap Closed)
+
+![Rapid Reporter Main Closed](docs/images/rapid-reporter-main-closed.png)
+
+### Main Instrument Panel (Recap Open)
+
+![Rapid Reporter Main Recap](docs/images/rapid-reporter-main-recap.png)
+
+---
+
+## 📄 Example Export
+
+Rapid Reporter exports structured, portable Markdown reports including session metadata, summary indicators, chronological notes, embedded screenshots, and formatted code snippets.
+
+Click the preview below to view the full sample report.
+
+<a href="docs/sample-report.pdf">
+  <img src="docs/images/sample-report-preview.png" alt="Sample Report Preview" width="600" />
+</a>
+
+---
+
+## macOS Installation Notes
+
+If you download and run the macOS app, you might encounter security warnings or blocked launches due to macOS Gatekeeper.
+
+To install and open the app:
+
+1. Download the `.dmg` file and drag the app to `/Applications`.
+2. Try to open the app normally (e.g. via Finder or Launchpad).
+3. If macOS blocks it with a warning, open System Preferences → Security & Privacy → General.
+4. Confirm when prompted.
+
+### Alternative: Remove Quarantine via Terminal
+
+If macOS still refuses to open the app, you can manually remove the quarantine attribute:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Rapid Reporter.app"
+```
+
+Then try launching the app again.
+
+This simply removes macOS's download quarantine flag from the application bundle.
+
+Future releases may include proper code signing and notarisation.
 
 ## Credits and Inspiration
 
@@ -32,7 +86,11 @@ This project is an independent modern re-implementation inspired by the original
 
 ## Artwork and Icons
 
-All category icons used by Rapid Reporter were designed from scratch by Mary, from [MD Creations](https://md-creations.co.uk/) and are used with permission. The icon artwork is original and forms part of the Rapid Reporter project.
+The Rapid Reporter application icon and all category icons were designed from scratch by **Mary (MD Creations)** and are used with permission.
+
+The artwork is original and forms part of the Rapid Reporter visual identity.
+
+You can find more of Mary’s work at [MD Creations](https://md-creations.co.uk/).
 
 ---
 

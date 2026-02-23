@@ -7,15 +7,25 @@
     <title>Tauri + React + Typescript</title>
     <style>
       /* Prevent white flash before React/Tailwind loads */
+      :root {
+        --app-bg: #f9d900;
+      }
       html, body {
         height: 100%;
         margin: 0;
-        background: #f9d900;
+        background: var(--app-bg);
       }
       #root {
         height: 100%;
       }
     </style>
+    <script>
+      // Make the region overlay transparent, while keeping the normal app (and loading screen)
+      // on the Rapid Reporter yellow background.
+      if (window.location.hash.startsWith("#/overlay")) {
+        document.documentElement.style.setProperty("--app-bg", "transparent");
+      }
+    </script>
   </head>
 
   <body>

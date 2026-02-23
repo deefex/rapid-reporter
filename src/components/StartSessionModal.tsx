@@ -11,8 +11,10 @@ export type StartSessionConfig = {
 
 export default function StartSessionModal({
   onStart,
+  appVersion,
 }: {
   onStart: (cfg: StartSessionConfig) => void;
+  appVersion?: string | null;
 }) {
   const [testerName, setTesterName] = useState("");
 
@@ -51,7 +53,17 @@ export default function StartSessionModal({
 
       {/* Modal */}
       <div className="relative w-[520px] max-w-[92vw] rounded-lg border border-black/20 bg-white/70 backdrop-blur px-4 py-4 shadow">
-        <div className="text-black font-semibold text-lg mb-2">Start Session</div>
+        <div className="mb-2 flex items-baseline justify-between">
+          <div className="text-black font-semibold text-lg">Start Session</div>
+          {appVersion && (
+            <div
+              className="text-xs text-black/50 select-none"
+              title={`Rapid Reporter v${appVersion}`}
+            >
+              Rapid Reporter v{appVersion}
+            </div>
+          )}
+        </div>
 
         <label className="block text-sm text-black/70 mb-1">Tester Name</label>
         <input

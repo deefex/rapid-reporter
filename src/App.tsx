@@ -42,6 +42,14 @@ function App() {
   const [exportError, setExportError] = useState<string | null>(null);
   const [isRegionCapturing, setIsRegionCapturing] = useState(false);
 
+  const [appVersion, setAppVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    invoke<string>("app_version")
+      .then(setAppVersion)
+      .catch(() => setAppVersion(null));
+  }, []);
+
   // ✅ Restore window sizing logic (start vs capture; recap collapsed vs expanded)
   useEffect(() => {
     const win = getCurrentWebviewWindow();
@@ -51,7 +59,7 @@ function App() {
 
     // Size for the main capture UI (collapsed vs expanded recap)
     const captureSizeCollapsed = new LogicalSize(1200, 200);
-    const captureSizeExpanded = new LogicalSize(1200, 360);
+    const captureSizeExpanded = new LogicalSize(1200, 380);
 
     const captureSize = recapOpen ? captureSizeExpanded : captureSizeCollapsed;
 
@@ -255,6 +263,7 @@ function App() {
     <div className="bg-[#f9d900] w-screen h-screen p-4 flex flex-col overflow-hidden">
       {!session ? (
         <StartSessionModal
+          appVersion={appVersion}
           onStart={(cfg) => {
             setRecapOpen(false);
             setSession({ ...cfg, notes: [] });
@@ -277,6 +286,7 @@ function App() {
           )}
 
           <InstrumentPanel
+            appVersion={appVersion}
             durationMinutes={session.durationMinutes}
             startedAt={session.startedAt}
             onCommit={handleCommit}

@@ -30,6 +30,7 @@ export type Note = {
 };
 
 export type InstrumentPanelProps = {
+  appVersion?: string | null;
   durationMinutes: DurationMinutes;
   startedAt: number; // epoch ms
   onCommit: (note: Note) => void;
@@ -70,6 +71,7 @@ const PROGRESS_GRADIENT =
 const NOTE_INPUT_MAX_PX = 56; // cap input growth to keep the fixed-height window stable; textarea scrolls internally beyond this
 
 export default function InstrumentPanel({
+  appVersion,
   durationMinutes,
   startedAt,
   onCommit,
@@ -438,6 +440,12 @@ export default function InstrumentPanel({
                   <div className="min-w-0 truncate">{n.text}</div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {appVersion && (
+            <div className="mt-2 pt-2 border-t border-black/10 text-[10px] text-black/40 text-right select-none">
+              Rapid Reporter v{appVersion}
             </div>
           )}
         </div>

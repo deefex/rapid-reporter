@@ -1,9 +1,19 @@
-/* Prevent a white flash before the app/Tailwind styles are applied */
+/**********************************************************
+  IMPORTANT
+  - Keep the document (html/body/#root) background transparent so the region overlay window
+    can be truly transparent on macOS.
+  - The main app window still paints its yellow background via the top-level React container
+    (see App.tsx: `bg-[#f9d900]`).
+  - The pre-react loading screen yellow is handled in `index.html` (inline styles), not here.
+**********************************************************/
 html,
 body,
 #root {
+  width: 100%;
   height: 100%;
-  background: #f9d900;
+  margin: 0;
+  padding: 0;
+  background: transparent;
 }
 
 body {
