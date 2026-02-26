@@ -131,13 +131,25 @@ You can find more of Mary’s work at [MD Creations](https://md-creations.co.uk/
 
 ### Screenshot capture
 - One‑click full screen screenshot capture
-- Region (area) capture via drag‑selection overlay (multi‑monitor aware)
+- Region (area) capture supported on macOS and Windows (platform-specific flow; see below)
 - Screenshots recorded as first‑class note type
 - Stored with unique timestamped filenames
 - Automatically copied into export folder
 - Exported as embedded images in Markdown report
-- Overlay supports multi‑monitor setups
-- Cancel region capture with Esc
+
+### Region Capture (Current Platform Behaviour)
+
+Rapid Reporter currently uses different region-capture mechanics per platform while the cross-platform UX is being refined.
+
+- **macOS:** Uses an in-app drag-selection overlay (multi-monitor aware). Press `Esc` to cancel.
+- **Windows:** Uses the native **Snipping Tool** (`ms-screenclip:`) as a fallback. Triggering `Region` opens the Windows snipping UI, and Rapid Reporter imports the image from the clipboard when a snip is completed.
+
+#### Windows notes (current fallback behaviour)
+
+- Region capture depends on the Snipping Tool placing an image on the clipboard.
+- Pressing `Esc` in Snipping Tool is treated as a cancel (no screenshot is added).
+- If no clipboard image arrives within a short timeout (currently ~5 seconds), Rapid Reporter exits capture mode and returns to normal without showing an error dialog.
+- In some VM environments, snipping interactions may feel slightly slower than on native Windows.
 
 ### Recap panel
 - Shows the last 6 notes
@@ -216,6 +228,12 @@ From the `src-tauri` directory, run:
 cargo test
 ```
 
+Or from the project root:
+
+```bash
+npm run test:rust
+```
+
 All tests must pass before merging changes that affect backend export behaviour.
 
 ### Run frontend tests
@@ -232,6 +250,12 @@ Run once (for CI or pre-merge validation):
 
 ```bash
 npm run test:run
+```
+
+Run frontend + Rust tests together:
+
+```bash
+npm run test:all
 ```
 
 Frontend tests cover:
