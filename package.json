@@ -13,7 +13,9 @@
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:run": "vitest run",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:rust": "cd src-tauri && cargo test",
+    "test:all": "npm run test:run && npm run test:rust"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
