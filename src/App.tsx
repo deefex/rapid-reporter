@@ -251,10 +251,36 @@ function App() {
 
     try {
       setIsRegionCapturing(true);
+
+      let platform = "";
+      try {
+        platform = await invoke<string>("platform_os");
+      } catch {
+        platform = "";
+      }
+
+      if (platform === "windows") {
+        const snipPath = await invoke<string | null>("capture_windows_snip_to_file", {
+          timeoutMs: 45_000,
+        });
+
+        if (snipPath && sessionRef.current) {
+          handleCommit({
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            type: "screenshot",
+            text: snipPath,
+          });
+        }
+
+        setIsRegionCapturing(false);
+        return;
+      }
+
       await invoke("open_region_overlay");
     } catch (err) {
-      console.error("Failed to open region overlay:", err);
-      window.alert("Could not open region selection overlay.");
+      console.error("Region capture failed:", err);
+      window.alert("Region capture failed. Please try again.");
       setIsRegionCapturing(false);
     }
   };

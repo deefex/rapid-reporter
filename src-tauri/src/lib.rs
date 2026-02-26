@@ -58,6 +58,11 @@ fn app_version() -> String {
 }
 
 #[tauri::command]
+fn platform_os() -> String {
+    std::env::consts::OS.to_string()
+}
+
+#[tauri::command]
 fn unique_screenshot_copy(path: String) -> Result<String, String> {
     use std::fs;
     use std::path::PathBuf;
@@ -96,6 +101,85 @@ fn unique_screenshot_copy(path: String) -> Result<String, String> {
     fs::copy(&src, &dst).map_err(|e| e.to_string())?;
 
     Ok(dst.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn capture_windows_snip_to_file(timeout_ms: Option<u64>) -> Result<Option<String>, String> {
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = timeout_ms;
+        return Err("Windows snipping fallback is only available on Windows.".to_string());
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        use std::path::PathBuf;
+        use std::process::Command;
+        use std::thread;
+        use std::time::{Duration, Instant};
+
+        fn image_fingerprint(img: &arboard::ImageData<'_>) -> (usize, usize, u64) {
+            let mut hasher = DefaultHasher::new();
+            img.bytes.hash(&mut hasher);
+            (img.width, img.height, hasher.finish())
+        }
+
+        let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
+
+        let baseline = clipboard.get_image().ok().map(|img| image_fingerprint(&img));
+
+        let launched = Command::new("explorer.exe")
+            .arg("ms-screenclip:")
+            .spawn()
+            .is_ok()
+            || Command::new("cmd")
+                .args(["/C", "start", "", "ms-screenclip:"])
+                .spawn()
+                .is_ok();
+
+        if !launched {
+            return Err("Could not launch Windows Snipping Tool.".to_string());
+        }
+
+        let timeout = Duration::from_millis(timeout_ms.unwrap_or(45_000));
+        let poll = Duration::from_millis(150);
+        let started = Instant::now();
+
+        while started.elapsed() < timeout {
+            if let Ok(img) = clipboard.get_image() {
+                let fp = image_fingerprint(&img);
+                if baseline.as_ref() != Some(&fp) {
+                    let width = img.width as u32;
+                    let height = img.height as u32;
+                    let bytes = img.bytes.into_owned();
+
+                    let out_dir = std::env::temp_dir().join("rapid-reporter");
+                    std::fs::create_dir_all(&out_dir).map_err(|e| e.to_string())?;
+
+                    let millis = chrono::Local::now().timestamp_millis();
+                    let out_path: PathBuf =
+                        out_dir.join(format!("windows-snip-{}.png", millis));
+
+                    image::save_buffer(
+                        &out_path,
+                        &bytes,
+                        width,
+                        height,
+                        image::ColorType::Rgba8,
+                    )
+                    .map_err(|e| e.to_string())?;
+
+                    return Ok(Some(out_path.to_string_lossy().to_string()));
+                }
+            }
+
+            thread::sleep(poll);
+        }
+
+        Ok(None)
+    }
 }
 
 #[derive(Deserialize)]
@@ -413,12 +497,14 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             app_version,
+            platform_os,
             unique_screenshot_copy,
             export_session_markdown,
             open_region_overlay,
             close_region_overlay,
             submit_region_selection,
-            crop_screenshot
+            crop_screenshot,
+            capture_windows_snip_to_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
