@@ -104,7 +104,7 @@ fn unique_screenshot_copy(path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn capture_windows_snip_to_file(timeout_ms: Option<u64>) -> Result<Option<String>, String> {
+async fn capture_windows_snip_to_file(timeout_ms: Option<u64>) -> Result<Option<String>, String> {
     #[cfg(not(target_os = "windows"))]
     {
         let _ = timeout_ms;
@@ -115,7 +115,6 @@ fn capture_windows_snip_to_file(timeout_ms: Option<u64>) -> Result<Option<String
     {
         use std::path::PathBuf;
         use std::process::Command;
-        use std::thread;
         use std::time::{Duration, Instant};
         use windows_sys::Win32::System::DataExchange::GetClipboardSequenceNumber;
 
@@ -230,7 +229,7 @@ fn capture_windows_snip_to_file(timeout_ms: Option<u64>) -> Result<Option<String
                 }
             }
 
-            thread::sleep(poll);
+            tauri::async_runtime::sleep(poll).await;
         }
 
         println!("[rapid-reporter] snip fallback timed out waiting for clipboard image");
