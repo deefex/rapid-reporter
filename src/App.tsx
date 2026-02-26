@@ -280,7 +280,8 @@ function App() {
             });
           } else if (!snipPath) {
             // Timed out or user cancelled snipping without placing an image on clipboard.
-            window.alert("Snipping cancelled or timed out.");
+            // Treat as a no-op to match user intent (Esc/cancel is not an error).
+            console.info("Windows snip cancelled or timed out.");
           }
         } finally {
           await win.setAlwaysOnTop(true).catch(() => {});
