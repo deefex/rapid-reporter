@@ -3479,6 +3479,7 @@ dependencies = [
  "tauri-plugin-macos-permissions",
  "tauri-plugin-opener",
  "tauri-plugin-screenshots",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

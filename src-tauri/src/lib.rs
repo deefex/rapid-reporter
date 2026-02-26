@@ -113,18 +113,11 @@ fn capture_windows_snip_to_file(timeout_ms: Option<u64>) -> Result<Option<String
 
     #[cfg(target_os = "windows")]
     {
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
         use std::path::PathBuf;
         use std::process::Command;
         use std::thread;
         use std::time::{Duration, Instant};
-
-        fn image_fingerprint(img: &arboard::ImageData<'_>) -> (usize, usize, u64) {
-            let mut hasher = DefaultHasher::new();
-            img.bytes.hash(&mut hasher);
-            (img.width, img.height, hasher.finish())
-        }
+        use windows_sys::Win32::System::DataExchange::GetClipboardSequenceNumber;
 
         println!(
             "[rapid-reporter] windows snip fallback start (timeout_ms={})",
@@ -136,10 +129,15 @@ fn capture_windows_snip_to_file(timeout_ms: Option<u64>) -> Result<Option<String
             e.to_string()
         })?;
 
-        let baseline = clipboard.get_image().ok().map(|img| image_fingerprint(&img));
+        let baseline_has_image = clipboard.get_image().is_ok();
+        let baseline_seq = unsafe { GetClipboardSequenceNumber() };
         println!(
             "[rapid-reporter] clipboard baseline image present: {}",
-            baseline.is_some()
+            baseline_has_image
+        );
+        println!(
+            "[rapid-reporter] clipboard baseline sequence: {}",
+            baseline_seq
         );
 
         let explorer_result = Command::new("explorer.exe")
@@ -185,10 +183,19 @@ fn capture_windows_snip_to_file(timeout_ms: Option<u64>) -> Result<Option<String
             timeout.as_millis()
         );
 
+        let mut saw_sequence_change = false;
         while started.elapsed() < timeout {
-            if let Ok(img) = clipboard.get_image() {
-                let fp = image_fingerprint(&img);
-                if baseline.as_ref() != Some(&fp) {
+            let seq = unsafe { GetClipboardSequenceNumber() };
+            if seq != baseline_seq {
+                if !saw_sequence_change {
+                    println!(
+                        "[rapid-reporter] clipboard sequence changed: {} -> {}",
+                        baseline_seq, seq
+                    );
+                    saw_sequence_change = true;
+                }
+
+                if let Ok(img) = clipboard.get_image() {
                     let width = img.width as u32;
                     let height = img.height as u32;
                     let bytes = img.bytes.into_owned();
@@ -217,6 +224,9 @@ fn capture_windows_snip_to_file(timeout_ms: Option<u64>) -> Result<Option<String
                     );
 
                     return Ok(Some(out_path.to_string_lossy().to_string()));
+                } else if saw_sequence_change {
+                    // Clipboard changed, but image payload is not readable yet.
+                    // Continue polling briefly until it becomes available or timeout hits.
                 }
             }
 

@@ -28,3 +28,6 @@ dirs = "5"
 chrono = "0.4"
 image = "0.25"
 arboard = "3"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_System_DataExchange"] }
