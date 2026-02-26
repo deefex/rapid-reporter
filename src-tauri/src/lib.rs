@@ -126,26 +126,64 @@ fn capture_windows_snip_to_file(timeout_ms: Option<u64>) -> Result<Option<String
             (img.width, img.height, hasher.finish())
         }
 
-        let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
+        println!(
+            "[rapid-reporter] windows snip fallback start (timeout_ms={})",
+            timeout_ms.unwrap_or(45_000)
+        );
+
+        let mut clipboard = arboard::Clipboard::new().map_err(|e| {
+            eprintln!("[rapid-reporter] clipboard init failed: {}", e);
+            e.to_string()
+        })?;
 
         let baseline = clipboard.get_image().ok().map(|img| image_fingerprint(&img));
+        println!(
+            "[rapid-reporter] clipboard baseline image present: {}",
+            baseline.is_some()
+        );
 
-        let launched = Command::new("explorer.exe")
+        let explorer_result = Command::new("explorer.exe")
             .arg("ms-screenclip:")
-            .spawn()
-            .is_ok()
-            || Command::new("cmd")
+            .spawn();
+        match &explorer_result {
+            Ok(_) => println!("[rapid-reporter] launch attempt explorer.exe ms-screenclip: OK"),
+            Err(e) => eprintln!(
+                "[rapid-reporter] launch attempt explorer.exe ms-screenclip: FAILED ({})",
+                e
+            ),
+        }
+
+        let cmd_result = if explorer_result.is_ok() {
+            None
+        } else {
+            let r = Command::new("cmd")
                 .args(["/C", "start", "", "ms-screenclip:"])
-                .spawn()
-                .is_ok();
+                .spawn();
+            match &r {
+                Ok(_) => println!("[rapid-reporter] launch attempt cmd start ms-screenclip: OK"),
+                Err(e) => eprintln!(
+                    "[rapid-reporter] launch attempt cmd start ms-screenclip: FAILED ({})",
+                    e
+                ),
+            }
+            Some(r)
+        };
+
+        let launched = explorer_result.is_ok() || cmd_result.as_ref().is_some_and(|r| r.is_ok());
 
         if !launched {
+            eprintln!("[rapid-reporter] all launch attempts failed");
             return Err("Could not launch Windows Snipping Tool.".to_string());
         }
 
         let timeout = Duration::from_millis(timeout_ms.unwrap_or(45_000));
         let poll = Duration::from_millis(150);
         let started = Instant::now();
+        println!(
+            "[rapid-reporter] waiting for new clipboard image (poll={}ms, timeout={}ms)",
+            poll.as_millis(),
+            timeout.as_millis()
+        );
 
         while started.elapsed() < timeout {
             if let Ok(img) = clipboard.get_image() {
@@ -171,6 +209,13 @@ fn capture_windows_snip_to_file(timeout_ms: Option<u64>) -> Result<Option<String
                     )
                     .map_err(|e| e.to_string())?;
 
+                    println!(
+                        "[rapid-reporter] snip captured from clipboard: {}x{} -> {}",
+                        width,
+                        height,
+                        out_path.to_string_lossy()
+                    );
+
                     return Ok(Some(out_path.to_string_lossy().to_string()));
                 }
             }
@@ -178,6 +223,7 @@ fn capture_windows_snip_to_file(timeout_ms: Option<u64>) -> Result<Option<String
             thread::sleep(poll);
         }
 
+        println!("[rapid-reporter] snip fallback timed out waiting for clipboard image");
         Ok(None)
     }
 }

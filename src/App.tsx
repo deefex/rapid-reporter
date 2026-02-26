@@ -260,20 +260,33 @@ function App() {
       }
 
       if (platform === "windows") {
-        const snipPath = await invoke<string | null>("capture_windows_snip_to_file", {
-          timeoutMs: 45_000,
-        });
+        const win = getCurrentWebviewWindow();
+        try {
+          // Snipping UI needs to come to the foreground on Windows.
+          // The main app window is configured as always-on-top, which can block it.
+          await win.setAlwaysOnTop(false).catch(() => {});
+          await new Promise((resolve) => window.setTimeout(resolve, 120));
 
-        if (snipPath && sessionRef.current) {
-          handleCommit({
-            id: crypto.randomUUID(),
-            timestamp: Date.now(),
-            type: "screenshot",
-            text: snipPath,
+          const snipPath = await invoke<string | null>("capture_windows_snip_to_file", {
+            timeoutMs: 45_000,
           });
+
+          if (snipPath && sessionRef.current) {
+            handleCommit({
+              id: crypto.randomUUID(),
+              timestamp: Date.now(),
+              type: "screenshot",
+              text: snipPath,
+            });
+          } else if (!snipPath) {
+            // Timed out or user cancelled snipping without placing an image on clipboard.
+            window.alert("Snipping cancelled or timed out.");
+          }
+        } finally {
+          await win.setAlwaysOnTop(true).catch(() => {});
+          setIsRegionCapturing(false);
         }
 
-        setIsRegionCapturing(false);
         return;
       }
 
