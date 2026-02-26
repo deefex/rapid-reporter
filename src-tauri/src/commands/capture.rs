@@ -23,35 +23,13 @@ pub(crate) async fn capture_windows_snip_to_file(
             use std::time::{Duration, Instant};
             use windows_sys::Win32::System::DataExchange::GetClipboardSequenceNumber;
 
-            println!(
-                "[rapid-reporter] windows snip fallback start (timeout_ms={})",
-                timeout_ms.unwrap_or(45_000)
-            );
-
-            let mut clipboard = arboard::Clipboard::new().map_err(|e| {
-                eprintln!("[rapid-reporter] clipboard init failed: {}", e);
-                e.to_string()
-            })?;
+            let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
 
             let baseline_has_image = clipboard.get_image().is_ok();
             let baseline_seq = unsafe { GetClipboardSequenceNumber() };
-            println!(
-                "[rapid-reporter] clipboard baseline image present: {}",
-                baseline_has_image
-            );
-            println!(
-                "[rapid-reporter] clipboard baseline sequence: {}",
-                baseline_seq
-            );
+            let _ = baseline_has_image;
 
             let explorer_result = Command::new("explorer.exe").arg("ms-screenclip:").spawn();
-            match &explorer_result {
-                Ok(_) => println!("[rapid-reporter] launch attempt explorer.exe ms-screenclip: OK"),
-                Err(e) => eprintln!(
-                    "[rapid-reporter] launch attempt explorer.exe ms-screenclip: FAILED ({})",
-                    e
-                ),
-            }
 
             let cmd_result = if explorer_result.is_ok() {
                 None
@@ -59,15 +37,6 @@ pub(crate) async fn capture_windows_snip_to_file(
                 let r = Command::new("cmd")
                     .args(["/C", "start", "", "ms-screenclip:"])
                     .spawn();
-                match &r {
-                    Ok(_) => {
-                        println!("[rapid-reporter] launch attempt cmd start ms-screenclip: OK")
-                    }
-                    Err(e) => eprintln!(
-                        "[rapid-reporter] launch attempt cmd start ms-screenclip: FAILED ({})",
-                        e
-                    ),
-                }
                 Some(r)
             };
 
@@ -75,28 +44,17 @@ pub(crate) async fn capture_windows_snip_to_file(
                 explorer_result.is_ok() || cmd_result.as_ref().is_some_and(|r| r.is_ok());
 
             if !launched {
-                eprintln!("[rapid-reporter] all launch attempts failed");
                 return Err("Could not launch Windows Snipping Tool.".to_string());
             }
 
             let timeout = Duration::from_millis(timeout_ms.unwrap_or(45_000));
             let poll = Duration::from_millis(150);
             let started = Instant::now();
-            println!(
-                "[rapid-reporter] waiting for new clipboard image (poll={}ms, timeout={}ms)",
-                poll.as_millis(),
-                timeout.as_millis()
-            );
-
             let mut saw_sequence_change = false;
             while started.elapsed() < timeout {
                 let seq = unsafe { GetClipboardSequenceNumber() };
                 if seq != baseline_seq {
                     if !saw_sequence_change {
-                        println!(
-                            "[rapid-reporter] clipboard sequence changed: {} -> {}",
-                            baseline_seq, seq
-                        );
                         saw_sequence_change = true;
                     }
 
@@ -121,13 +79,6 @@ pub(crate) async fn capture_windows_snip_to_file(
                         )
                         .map_err(|e| e.to_string())?;
 
-                        println!(
-                            "[rapid-reporter] snip captured from clipboard: {}x{} -> {}",
-                            width,
-                            height,
-                            out_path.to_string_lossy()
-                        );
-
                         return Ok(Some(out_path.to_string_lossy().to_string()));
                     } else if saw_sequence_change {
                         // Clipboard changed, but image payload is not readable yet.
@@ -138,7 +89,6 @@ pub(crate) async fn capture_windows_snip_to_file(
                 thread::sleep(poll);
             }
 
-            println!("[rapid-reporter] snip fallback timed out waiting for clipboard image");
             Ok(None)
         })
         .await
