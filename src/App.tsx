@@ -268,7 +268,7 @@ function App() {
           await new Promise((resolve) => window.setTimeout(resolve, 120));
 
           const snipPath = await invoke<string | null>("capture_windows_snip_to_file", {
-            timeoutMs: 15_000,
+            timeoutMs: 5_000,
           });
 
           if (snipPath && sessionRef.current) {
