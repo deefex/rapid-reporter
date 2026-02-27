@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 import { invoke } from "@tauri-apps/api/core";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 
 import type { Event } from "@tauri-apps/api/event";
 
@@ -29,6 +30,11 @@ type RegionSelection = {
   devicePixelRatio: number;
 };
 
+type ExportToast = {
+  exportDir: string;
+  markdownPath: string;
+};
+
 function App() {
   // Simple “router” for the overlay window
   if (window.location.hash === "#/overlay") {
@@ -41,6 +47,7 @@ function App() {
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [isRegionCapturing, setIsRegionCapturing] = useState(false);
+  const [exportToast, setExportToast] = useState<ExportToast | null>(null);
 
   const [appVersion, setAppVersion] = useState<string | null>(null);
 
@@ -65,6 +72,12 @@ function App() {
 
     win.setSize(session ? captureSize : startSessionSize).catch(console.error);
   }, [session, recapOpen]);
+
+  useEffect(() => {
+    if (!exportToast) return;
+    const id = window.setTimeout(() => setExportToast(null), 8_000);
+    return () => window.clearTimeout(id);
+  }, [exportToast]);
 
   const sessionRef = useRef<Session | null>(null);
   useEffect(() => {
@@ -229,7 +242,16 @@ function App() {
     if (!session) return;
 
     try {
-      await invoke<{ markdownPath: string }>("export_session_markdown", { session });
+      const result = await invoke<{ markdownPath: string; exportDir?: string }>(
+        "export_session_markdown",
+        { session }
+      );
+
+      const fallbackExportDir = result.markdownPath.replace(/[\\/][^\\/]+$/, "");
+      setExportToast({
+        markdownPath: result.markdownPath,
+        exportDir: result.exportDir ?? fallbackExportDir,
+      });
     } catch (err) {
       console.error("Export failed:", err);
       setExportError(
@@ -367,6 +389,43 @@ function App() {
                 End & Export
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {exportToast && (
+        <div className="absolute right-4 top-4 z-[60] w-[420px] max-w-[92vw] rounded-md border border-black/25 bg-white/95 px-3 py-3 shadow-lg backdrop-blur">
+          <div className="text-sm font-semibold text-black">Session exported</div>
+          <div className="mt-1 text-xs text-black/70">Destination folder</div>
+          <div
+            className="mt-1 truncate rounded border border-black/10 bg-black/[0.04] px-2 py-1 text-xs text-black/80"
+            title={exportToast.exportDir}
+          >
+            {exportToast.exportDir}
+          </div>
+
+          <div className="mt-2 flex justify-end gap-2">
+            <button
+              type="button"
+              className="px-3 py-1.5 rounded border border-black/20 bg-white/80 text-black text-xs hover:bg-white"
+              onClick={() => setExportToast(null)}
+            >
+              Dismiss
+            </button>
+            <button
+              type="button"
+              className="px-3 py-1.5 rounded border border-black/20 bg-black/85 text-white text-xs hover:bg-black"
+                  onClick={async () => {
+                try {
+                  await revealItemInDir(exportToast.markdownPath);
+                } catch (err) {
+                  console.error("Failed to open export folder:", err);
+                  window.alert("Could not open export folder.");
+                }
+              }}
+            >
+              Open Folder
+            </button>
           </div>
         </div>
       )}

@@ -8,6 +8,10 @@ use std::fs;
 /// Exports an in-memory test session to a portable markdown report in the user's home directory.
 ///
 /// The export folder contains the markdown file plus copied icons/screenshots under `assets/`.
+///
+/// Returns a map with:
+/// - `markdownPath`: absolute path to the markdown report file
+/// - `exportDir`: absolute path to the export folder
 #[tauri::command]
 pub(crate) fn export_session_markdown(
     session: Session,
@@ -132,6 +136,10 @@ pub(crate) fn export_session_markdown(
     result.insert(
         "markdownPath".to_string(),
         md_path.to_string_lossy().to_string(),
+    );
+    result.insert(
+        "exportDir".to_string(),
+        export_dir.to_string_lossy().to_string(),
     );
 
     Ok(result)

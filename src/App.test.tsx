@@ -48,6 +48,13 @@ vi.mock("@tauri-apps/api/core", () => {
   };
 });
 
+const openerOpenMock = vi.fn(async (_path: string) => {});
+vi.mock("@tauri-apps/plugin-opener", () => {
+  return {
+    revealItemInDir: (path: string) => openerOpenMock(path),
+  };
+});
+
 // Screenshots API is only used when a region capture event fires.
 // Stub it so the module can be imported safely in tests.
 vi.mock("tauri-plugin-screenshots-api", () => {
