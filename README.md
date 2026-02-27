@@ -285,29 +285,6 @@ npm run tauri build
 
 ---
 
-## Project Structure
-
-```text
-src/
-  App.tsx
-  App.test.tsx
-  components/
-    InstrumentPanel.tsx
-    InstrumentPanel.test.tsx
-    StartSessionModal.tsx
-    StartSessionModal.test.tsx
-
-src-tauri/
-  src/
-    lib.rs
-
-vite.config.ts
-vite.setup.ts
-README.md
-```
-
----
-
 ## Backlog / TODO
 
 ### Export improvements
@@ -316,7 +293,6 @@ README.md
 
 ### Usability improvements
 
-- [ ] Toast notification after export (show destination folder + quick “Open folder” action)
 - [ ] Click screenshot in recap to open file
 - [ ] Keyboard shortcut for screenshot capture
 - [ ] Autosave session recovery

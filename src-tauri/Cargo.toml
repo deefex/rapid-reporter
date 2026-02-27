@@ -1,6 +1,6 @@
 [package]
 name = "rapid-reporter"
-version = "1.0.3"
+version = "1.0.4"
 description = "A lightweight exploratory testing capture tool built with Tauri."
 authors = ["Del Dewar"]
 edition = "2021"
